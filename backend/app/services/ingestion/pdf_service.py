@@ -12,7 +12,7 @@ Pipeline:
     4. Normalize Unicode (NFC) and clean OCR noise.
     5. Run regex-based extraction for high-precision fields (phone, date, FIR no, pincode).
     6. Run LLM-based structured extraction (Claude) for entities/sections/key facts,
-       if ANTHROPIC_API_KEY is available. Falls back to regex-only output otherwise.
+       if GOOGLE_API_KEY is available. Falls back to regex-only output otherwise.
     7. Validate the final structure with Pydantic before returning/saving JSON.
 
 Usage:
@@ -35,6 +35,17 @@ import pytesseract
 from pdf2image import convert_from_path
 from langdetect import detect_langs, DetectorFactory
 from pydantic import BaseModel, Field, ValidationError
+from google import genai
+from google.genai import types
+from dotenv import load_dotenv
+from pathlib import Path
+
+
+# .env lives at backend/.env, but this file is at backend/app/services/ingestion/
+# so walk up to the backend root explicitly rather than relying on CWD
+BACKEND_ROOT = Path(__file__).resolve().parents[3]  # ingestion -> services -> app -> backend
+load_dotenv(BACKEND_ROOT / ".env")
+print("Key loaded:", bool(os.environ.get("GOOGLE_API_KEY")))
 
 DetectorFactory.seed = 0  # deterministic langdetect results
 
@@ -183,7 +194,7 @@ def regex_extract(text: str) -> Dict[str, List[str]]:
 
 # --------------------------------------------------------------------------
 # 5. LLM-based structured extraction (entities, sections, key facts)
-#    Uses Claude via the Anthropic API if ANTHROPIC_API_KEY is set.
+#    Uses Claude via the Anthropic API if GOOGLE_API_KEY is set.
 #    This is what makes the extraction genuinely language-agnostic for
 #    free-text fields (narrative, complainant/accused details) instead of
 #    needing a separate NER model per language.
@@ -215,26 +226,21 @@ Rules:
 """
 
 
-def llm_extract(text: str, model: str = "claude-sonnet-4-6") -> Optional[Dict[str, Any]]:
-    api_key = os.environ.get("ANTHROPIC_API_KEY")
-    if not api_key:
-        return None
-
-    try:
-        import anthropic
-        client = anthropic.Anthropic(api_key=api_key)
-        response = client.messages.create(
-            model=model,
-            max_tokens=2000,
-            system=EXTRACTION_SYSTEM_PROMPT,
-            messages=[{"role": "user", "content": text[:15000]}],  # guard against oversized input
-        )
-        raw = "".join(block.text for block in response.content if block.type == "text")
-        raw = re.sub(r"^```json|```$", "", raw.strip(), flags=re.MULTILINE).strip()
-        return json.loads(raw)
-    except Exception as e:
-        print(f"[warn] LLM extraction failed, falling back to regex-only output: {e}", file=sys.stderr)
-        return None
+def llm_extract(text: str, model: str = "gemini-2.5-flash") -> Optional[Dict[str, Any]]:
+    api_key = os.environ.get("GOOGLE_API_KEY")
+    ...
+    client = genai.Client(api_key=api_key)
+    response = client.models.generate_content(
+        model=model,
+        contents=text[:15000],
+        config=types.GenerateContentConfig(
+            system_instruction=EXTRACTION_SYSTEM_PROMPT,
+            response_mime_type="application/json",  # forces valid JSON directly
+            temperature=0,
+        ),
+    )
+    raw = response.text
+    return json.loads(raw)
 
 
 # --------------------------------------------------------------------------
