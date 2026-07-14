@@ -1,0 +1,62 @@
+{
+  "document_meta": {
+    "source_file": "scanned_sample.pdf",
+    "languages_detected": [
+      "gu",
+      "hi"
+    ],
+    "page_count": 1,
+    "extraction_methods": [
+      "ocr"
+    ]
+  },
+  "sections": {
+    "complainant_details": {
+      "name": "રમેશ પટેલ",
+      "address": "અમદાવાદ, ગુજરાત",
+      "phone": "9998887770",
+      "id_proof": ""
+    },
+    "incident_details": {
+      "date": "20/06/2026",
+      "location": "વસ્ત્રાપુર તળાવ પાસે",
+      "description": ""
+    },
+    "accused_details": [],
+    "narrative_text": "ફરિયાદીનું નામ - રમેશ પટેલ\nशिकायतकर्ता का पता: अहमदाबाद, गुजरात\nPhone: 9998887770 Date: 20/06/2026\n\nઘટના સ્થળ. વસ્ત્રાપુર તળાવ પાસે"
+  },
+  "entities": {
+    "people": [
+      "રમેશ પટેલ"
+    ],
+    "locations": [
+      "અમદાવાદ",
+      "ગુજરાત",
+      "વસ્ત્રાપુર તળાવ"
+    ],
+    "dates": [
+      "20/06/2026"
+    ],
+    "phone_numbers": [
+      "9998887770"
+    ],
+    "organizations": []
+  },
+  "key_facts": [],
+  "regex_extracted": {
+    "phone_numbers": [
+      "9998887770"
+    ],
+    "pincodes": [],
+    "dates": [
+      "20/06/2026"
+    ],
+    "fir_numbers": [],
+    "aadhaar_like": []
+  },
+  "confidence_flags": {
+    "ocr_used": true,
+    "llm_extraction_used": true,
+    "needs_human_review": true
+  }
+}
