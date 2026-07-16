@@ -1,0 +1,80 @@
+{
+  "title": "Register Complaint",
+  "newComplaint": "New Complaint",
+  "complaintDetails": "Complaint Details",
+  "complainant": "Complainant",
+  "accused": "Accused",
+  "location": "Location",
+  "description": "Description",
+  "evidence": "Evidence",
+  "uploadDocument": "Upload Document",
+  "attachments": "Attachments",
+  "complaintType": "Complaint Type",
+  "urgency": "Urgency",
+  "caseNumber": "Case Number",
+  "filed": "Filed",
+  "status": "Status",
+  "investigator": "Investigator",
+  "registerComplaint": "Register Complaint",
+  "openDashboard": "Open Dashboard",
+  "secureCaseManagement": "Secure, Guided Complaint Management",
+  "streamlineWorkflow": "Streamline case registration and investigation workflows.",
+  "description_full": "CaseCraftAI helps investigators intake complaints quickly, organize evidence, and monitor urgent cases from one dashboard.",
+
+  "wizard": {
+    "title": "Complaint Register",
+    "heading": "Register a New Complaint",
+    "description": "Follow the guided steps below to capture evidence, complainant information and case notes.",
+
+    "addVictim": "Add Victim",
+    "addSuspect": "Add Suspect",
+    "addComplainant": "Add Complainant",
+    "complaintDetails": "Complaint Details",
+
+    "step": "Step",
+    "of": "of",
+
+    "tip": "Tip: Use the quick buttons to jump directly to any section.",
+
+    "successTitle": "Complaint Registered Successfully",
+    "successDescription": "The complaint has been saved to the registry and is ready for review by the assigned officer.",
+    "registerAnother": "Register Another Complaint",
+
+    "submitFailed": "Submission failed. Please verify the backend is running."
+  },
+  "steps": {
+    "complaint": "Complaint",
+    "victims": "Victims",
+    "suspects": "Suspects",
+    "complainant": "Complainant",
+    "review": "Review",
+    "documents": "Documents"
+  },
+  "navigation": {
+    "back": "Back",
+    "continue": "Continue",
+    "submitComplaint": "Submit Complaint",
+    "step": "Step",
+    "of": "of",
+    "tip": "Tip: Use the quick buttons to jump to the relevant section instantly."
+  },
+  "documentsEvidence": {
+    "label": "Documents & Evidence",
+    "heading": "Upload Supporting Documents",
+    "description": "Upload all documents, photos, videos, audio files, and other evidence related to this complaint. All file types are supported.",
+    "dragDrop": "Drag and drop files here",
+    "dropFiles": "Drop files here",
+    "orClick": "or click to select files",
+    "supportedFormats": "Supported formats: PDF, Images, Audio, Video, Word, Excel, Text",
+    "selectedFiles": "Selected Files",
+    "selectAtLeast": "Please select at least one file to upload.",
+    "uploadSuccess": "Documents uploaded successfully!",
+    "uploadError": "Error uploading documents. Please try again.",
+    "uploadButton": "Upload",
+    "uploading": "Uploading",
+    "file": "File",
+    "files": "Files",
+    "secureCloud": "Secure Cloud Storage",
+    "secureClouds": "All documents are securely uploaded to Cloudinary and linked to this complaint for easy access and management."
+  }
+}

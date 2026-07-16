@@ -13,25 +13,25 @@ export default function ReviewSubmission({ form }: Props) {
         <p className="text-base font-medium text-blue-600">Final review</p>
         <h2 className="mt-1 text-2xl font-semibold text-slate-900">Review and confirm submission</h2>
         <p className="mt-2 text-base text-slate-500">
-          Check all complaint, complainant, victim, and suspect details before submitting.
+          Confirm the incident summary, people involved, and attached evidence before sending the complaint.
         </p>
       </div>
 
       <div className="grid gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 md:grid-cols-2">
         <div>
-        <p className="text-base font-medium text-slate-500">Complaint type</p>
+          <p className="text-base font-medium text-slate-500">Complaint type</p>
           <p className="mt-1 font-semibold text-slate-900">{form.complaintType || "Not provided"}</p>
         </div>
         <div>
-        <p className="text-base font-medium text-slate-500">Category</p>
+          <p className="text-base font-medium text-slate-500">Category</p>
           <p className="mt-1 font-semibold text-slate-900">{form.category || "Not provided"}</p>
         </div>
         <div>
-        <p className="text-base font-medium text-slate-500">Priority</p>
+          <p className="text-base font-medium text-slate-500">Priority</p>
           <p className="mt-1 font-semibold text-slate-900">{form.priority || "Not provided"}</p>
         </div>
         <div>
-        <p className="text-base font-medium text-slate-500">Location</p>
+          <p className="text-base font-medium text-slate-500">Location</p>
           <p className="mt-1 font-semibold text-slate-900">{form.location || "Not provided"}</p>
         </div>
       </div>
@@ -55,7 +55,7 @@ export default function ReviewSubmission({ form }: Props) {
           <div key={index} className="rounded-2xl bg-white p-4 shadow-sm">
             <p className="text-base font-semibold text-slate-900">Complainant {index + 1}</p>
             <p className="text-base text-slate-600">{entry.name || "No name"}</p>
-            {entry.photoName ? <p className="text-base text-slate-500">Photo: {entry.photoName}</p> : null}
+            <p className="text-base text-slate-500">Type: {entry.type || "Not provided"}</p>
             <p className="text-base text-slate-500">Contact: {entry.contact || "Not provided"}</p>
             <p className="text-base text-slate-500">Relationship: {entry.relationship || "Not provided"}</p>
           </div>
@@ -68,7 +68,6 @@ export default function ReviewSubmission({ form }: Props) {
           <div key={index} className="rounded-2xl bg-white p-4 shadow-sm">
             <p className="text-base font-semibold text-slate-900">Victim {index + 1}</p>
             <p className="text-base text-slate-600">{entry.name || "No name"}</p>
-            {entry.photoName ? <p className="text-base text-slate-500">Photo: {entry.photoName}</p> : null}
             <p className="text-base text-slate-500">Type: {entry.type || "Not provided"}</p>
             <p className="text-base text-slate-500">Contact: {entry.contact || "Not provided"}</p>
           </div>
@@ -81,18 +80,10 @@ export default function ReviewSubmission({ form }: Props) {
           <div key={index} className="rounded-2xl bg-white p-4 shadow-sm">
             <p className="text-base font-semibold text-slate-900">Suspect {index + 1}</p>
             <p className="text-base text-slate-600">{entry.name || "No name"}</p>
-            {entry.photoName ? <p className="text-base text-slate-500">Photo: {entry.photoName}</p> : null}
             <p className="text-base text-slate-500">Type: {entry.type || "Not provided"}</p>
             <p className="text-base text-slate-500">Status: {entry.status || "Not provided"}</p>
           </div>
         ))}
-      </div>
-
-      <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-base text-emerald-700">
-        <p className="font-semibold">Submission preview</p>
-        <p className="mt-2">
-          Your complaint will be saved with the current incident summary, attached evidence, and investigator notes.
-        </p>
       </div>
     </div>
   );

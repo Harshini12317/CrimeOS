@@ -1,0 +1,44 @@
+{
+  "appName": "CaseCraftAI",
+  "appSubtitle": "केस संचालन केंद्र",
+
+  "overview": "अवलोकन",
+  "dashboard": "डैशबोर्ड",
+  "aiInsights": "एआई विश्लेषण",
+
+  "secureTitle": "सुरक्षित डिज़ाइन",
+  "secureDescription": "सभी शिकायत फ़ाइलें बहु-स्तरीय सत्यापन और ऑडिट लॉग द्वारा सुरक्षित हैं।",
+
+  "save": "सहेजें",
+  "cancel": "रद्द करें",
+  "delete": "हटाएँ",
+  "edit": "संपादित करें",
+  "back": "वापस",
+  "next": "अगला",
+  "submit": "जमा करें",
+  "loading": "लोड हो रहा है...",
+  "error": "त्रुटि",
+  "success": "सफल",
+  "warning": "चेतावनी",
+  "confirm": "पुष्टि करें",
+  "close": "बंद करें",
+  "filter": "फ़िल्टर",
+  "sort": "क्रमबद्ध करें",
+  "search": "खोजें",
+  "no_results": "कोई परिणाम नहीं मिला",
+  "view_all": "सभी देखें",
+  "caseList": "मामलों की सूची",
+  "complaintList": "शिकायत सूची",
+  "registerComplaint": "शिकायत दर्ज करें",
+
+  "nav": {
+    "operationsCenter": "संचालन केंद्र",
+    "dailyCaseOverview": "दैनिक मामले का अवलोकन",
+    "search": "खोजें",
+    "notifications": "सूचनाएँ",
+    "currentUser": "इंस्पेक्टर राव",
+    "changeLanguage": "भाषा बदलें",
+    "language": "भाषा",
+    "logout": "लॉग आउट"
+  }
+}

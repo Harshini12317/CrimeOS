@@ -1,0 +1,16 @@
+{
+  "title": "डैशबोर्ड",
+  "welcome": "CaseCraftAI में आपका स्वागत है",
+  "recentComplaints": "हालिया शिकायतें",
+  "activeInvestigations": "सक्रिय जांच",
+  "pendingReview": "समीक्षा के लिए प्रतीक्षमान",
+  "resolvedCases": "हल किए गए मामले",
+  "stats": {
+    "totalCases": "कुल मामले",
+    "activeCases": "सक्रिय मामले",
+    "resolved": "हल किए गए",
+    "pending": "लंबित"
+  },
+  "activityFeed": "गतिविधि फीड",
+  "viewAll": "सभी देखें"
+}

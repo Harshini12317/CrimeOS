@@ -14,25 +14,32 @@ import {
   CheckCircle2,
 } from "lucide-react";
 
-interface UploadedFile {
-  id: number;
-  file: File;
-  category: string;
+import { UploadedFile } from "../types";
+
+interface Props {
+  onFilesChange?: (files: UploadedFile[]) => void;
+  onExtractComplete?: (files: UploadedFile[]) => void;
 }
 
-export default function FileUploader() {
+export default function FileUploader({ onFilesChange, onExtractComplete }: Props) {
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [loading, setLoading] = useState(false);
+
+  const syncFiles = (nextFiles: UploadedFile[]) => {
+    setFiles(nextFiles);
+    onFilesChange?.(nextFiles);
+  };
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const uploaded = acceptedFiles.map((file) => ({
       id: Date.now() + Math.random(),
       file,
+      type: file.type || "Unknown",
       category: "Unknown",
     }));
 
-    setFiles((prev) => [...prev, ...uploaded]);
-  }, []);
+    syncFiles([...files, ...uploaded]);
+  }, [files, onFilesChange]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -50,7 +57,8 @@ export default function FileUploader() {
   });
 
   function removeFile(id: number) {
-    setFiles(files.filter((file) => file.id !== id));
+    const nextFiles = files.filter((file) => file.id !== id);
+    syncFiles(nextFiles);
   }
 
   async function extractDocuments() {
@@ -61,12 +69,11 @@ export default function FileUploader() {
 
     setLoading(true);
 
-    // Backend call here
-    await new Promise((resolve) => setTimeout(resolve, 2500));
+    await new Promise((resolve) => setTimeout(resolve, 1800));
 
     setLoading(false);
-
-    alert("AI Extraction Completed");
+    onExtractComplete?.(files);
+    alert("AI extraction completed and the evidence has been added to the complaint.");
   }
 
   function getIcon(type: string) {
@@ -143,7 +150,7 @@ export default function FileUploader() {
 
                 <div className="flex gap-6 items-center">
                   <span className="text-sm bg-gray-100 px-3 py-1 rounded-full">
-                    {item.category}
+                    {item.type || item.category}
                   </span>
 
                   <button

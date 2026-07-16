@@ -1,0 +1,62 @@
+"use client";
+
+import { useState } from "react";
+import { FileText, Paperclip, CheckCircle2 } from "lucide-react";
+import FileUploader from "../upload/FileUploader";
+import { UploadedFile } from "../types";
+
+interface Props {
+  onDocumentsSubmit?: (uploadedFiles: UploadedFile[]) => void;
+}
+
+export default function DocumentsAndEvidence({ onDocumentsSubmit }: Props) {
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
+
+  return (
+    <div className="space-y-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div>
+        <p className="text-base font-medium text-blue-600">Step 1</p>
+        <h2 className="mt-1 text-2xl font-semibold text-slate-900">Documents and evidence</h2>
+        <p className="mt-2 text-base text-slate-500">
+          Upload supporting documents, photos, audio, or videos and capture them as evidence for this complaint.
+        </p>
+      </div>
+
+      <FileUploader
+        onFilesChange={(files) => setUploadedFiles(files)}
+        onExtractComplete={(files) => {
+          setUploadedFiles(files);
+          onDocumentsSubmit?.(files);
+        }}
+      />
+
+      {uploadedFiles.length > 0 ? (
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+          <div className="flex items-center gap-2 text-emerald-700">
+            <CheckCircle2 className="h-5 w-5" />
+            <p className="font-semibold">Evidence prepared for submission</p>
+          </div>
+          <div className="mt-3 space-y-2">
+            {uploadedFiles.map((item) => (
+              <div key={item.id} className="flex items-center justify-between rounded-2xl border border-emerald-100 bg-white px-4 py-3">
+                <div className="flex items-center gap-3">
+                  <div className="rounded-full bg-emerald-100 p-2 text-emerald-700">
+                    <FileText className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-slate-900">{item.file.name}</p>
+                    <p className="text-sm text-slate-500">{item.type || "Unknown file type"}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 rounded-full bg-slate-50 px-3 py-1 text-sm text-slate-600">
+                  <Paperclip className="h-4 w-4" />
+                  Attached
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}

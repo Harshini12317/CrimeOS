@@ -1,0 +1,16 @@
+{
+  "title": "Dashboard",
+  "welcome": "Welcome to CaseCraftAI",
+  "recentComplaints": "Recent Complaints",
+  "activeInvestigations": "Active Investigations",
+  "pendingReview": "Pending Review",
+  "resolvedCases": "Resolved Cases",
+  "stats": {
+    "totalCases": "Total Cases",
+    "activeCases": "Active Cases",
+    "resolved": "Resolved",
+    "pending": "Pending"
+  },
+  "activityFeed": "Activity Feed",
+  "viewAll": "View All"
+}

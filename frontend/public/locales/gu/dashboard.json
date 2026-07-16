@@ -1,0 +1,16 @@
+{
+  "title": "ડેશબોર્ડ",
+  "welcome": "CaseCraftAI માં સ્વાગત છે",
+  "recentComplaints": "તાજેતરની ફરિયાદો",
+  "activeInvestigations": "સક્રિય તપાસ",
+  "pendingReview": "સમીક્ષા માટે પ્રતીક્ષા કરી રહ્યું છે",
+  "resolvedCases": "હલ કરાયેલા કેસ",
+  "stats": {
+    "totalCases": "કુલ કેસ",
+    "activeCases": "સક્રિય કેસ",
+    "resolved": "હલ કરાયેલ",
+    "pending": "બાકી"
+  },
+  "activityFeed": "પ્રવૃત્તિ ફીડ",
+  "viewAll": "બધું જુઓ"
+}

@@ -1,0 +1,44 @@
+{
+  "appName": "CaseCraftAI",
+  "appSubtitle": "Case Operations Hub",
+
+  "overview": "Overview",
+  "dashboard": "Dashboard",
+  "aiInsights": "AI Insights",
+
+  "secureTitle": "Secure by Design",
+  "secureDescription": "All complaint files are protected with layered verification and audit logs.",
+
+  "save": "Save",
+  "cancel": "Cancel",
+  "delete": "Delete",
+  "edit": "Edit",
+  "back": "Back",
+  "next": "Next",
+  "submit": "Submit",
+  "loading": "Loading...",
+  "error": "Error",
+  "success": "Success",
+  "warning": "Warning",
+  "confirm": "Confirm",
+  "close": "Close",
+  "filter": "Filter",
+  "sort": "Sort",
+  "search": "Search",
+  "no_results": "No results found",
+  "view_all": "View All",
+  "caseList": "Case List",
+  "complaintList": "Complaint List",
+  "registerComplaint": "Register Complaint",
+
+  "nav": {
+    "operationsCenter": "Operations Center",
+    "dailyCaseOverview": "Daily Case Overview",
+    "search": "Search",
+    "notifications": "Notifications",
+    "currentUser": "Inspector Rao",
+    "changeLanguage": "Change Language",
+    "language": "Language",
+    "logout": "Logout"
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "appName": "CaseCraftAI",
+  "appSubtitle": "કેસ ઓપરેશન્સ હબ",
+
+  "overview": "ઝાંખી",
+  "dashboard": "ડેશબોર્ડ",
+  "aiInsights": "AI વિશ્લેષણ",
+
+  "secureTitle": "સુરક્ષિત ડિઝાઇન",
+  "secureDescription": "તમામ ફરિયાદ ફાઇલો બહુસ્તરીય ચકાસણી અને ઓડિટ લોગ દ્વારા સુરક્ષિત છે.",
+
+  "save": "સાચવો",
+  "cancel": "રદ કરો",
+  "delete": "કાઢી નાખો",
+  "edit": "સંપાદિત કરો",
+  "back": "પાછળ",
+  "next": "આગળ",
+  "submit": "સબમિટ કરો",
+  "loading": "લોડ થઈ રહ્યું છે...",
+  "error": "ભૂલ",
+  "success": "સફળ",
+  "warning": "ચેતવણી",
+  "confirm": "પુષ્ટિ કરો",
+  "close": "બંધ કરો",
+  "filter": "ફિલ્ટર",
+  "sort": "ક્રમબદ્ધ કરો",
+  "search": "શોધો",
+  "no_results": "કોઈ પરિણામ મળ્યું નથી",
+  "view_all": "બધું જુઓ",
+  "caseList": "કેસોની યાદી",
+  "complaintList": "ફરિયાદોની યાદી",
+  "registerComplaint": "ફરિયાદ નોંધાવો",
+
+  "nav": {
+    "operationsCenter": "ઓપરેશન્સ સેન્ટર",
+    "dailyCaseOverview": "દૈનિક કેસ ઓવરવ્યુ",
+    "search": "શોધો",
+    "notifications": "સૂચનાઓ",
+    "currentUser": "ઇન્સ્પેક્ટર રાવ",
+    "changeLanguage": "ભાષા બદલો",
+    "language": "ભાષા",
+    "logout": "લૉગ આઉટ"
+  }
+}
