@@ -5,22 +5,47 @@
   --foreground: #171717;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+@theme {
+  /* Maroon — brand / sidebar / primary actions */
+  --color-maroon-50: #FBEEF0;
+  --color-maroon-100: #F3D6DB;
+  --color-maroon-200: #E3AEB8;
+  --color-maroon-300: #CE7F8D;
+  --color-maroon-400: #A94356;
+  --color-maroon-500: #7A1B2B;
+  --color-maroon-600: #5C0E1E;
+  --color-maroon-700: #4A0C18;
+  --color-maroon-800: #3D0A14;
+  --color-maroon-900: #2B060E;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  /* Gold — accents, active states, borders */
+  --color-gold-50: #FDF8EC;
+  --color-gold-100: #FAEECB;
+  --color-gold-200: #F3DA96;
+  --color-gold-300: #E8C766;
+  --color-gold-400: #D9B33F;
+  --color-gold-500: #C9A227;
+  --color-gold-600: #A9860F;
+  --color-gold-700: #7D630B;
+  --color-gold-800: #574508;
+  --color-gold-900: #332804;
+
+  /* Neutrals */
+  --color-ivory: #FBF8F3;
+  --color-ink-600: #5C5458;
+  --color-ink-900: #211A1D;
+
+  /* Semantic */
+  --color-risk: #B23A2E;
+
+  /* Type — sourced from the next/font variables set on <html> in layout.tsx */
+  --font-display: var(--font-display), Georgia, serif;
+  --font-sans: var(--font-geist-sans), system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), monospace;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
 }

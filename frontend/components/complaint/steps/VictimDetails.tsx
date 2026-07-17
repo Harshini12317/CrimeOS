@@ -38,19 +38,19 @@ export default function VictimDetails({ victims, setVictims }: Props) {
   }
 
   return (
-    <div className="space-y-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+    <div className="space-y-6 rounded-3xl border border-gold-200 bg-white p-6 shadow-sm">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-base font-medium text-blue-600">Step 2</p>
-          <h2 className="mt-1 text-2xl font-semibold text-slate-900">Victim details</h2>
-          <p className="mt-2 text-base text-slate-500">
+          <p className="text-base font-medium text-gold-700">Step 2</p>
+          <h2 className="mt-1 text-2xl font-semibold text-ink-900">Victim details</h2>
+          <p className="mt-2 text-base text-ink-600">
             Add one or more victims and include any protective notes.
           </p>
         </div>
         <button
           type="button"
           onClick={() => setVictims([...victims, { type: "", name: "", contact: "", statement: "" }])}
-          className="rounded-full border border-blue-600 bg-blue-600 px-4 py-2 text-base font-semibold text-white transition hover:bg-blue-700"
+          className="rounded-full border border-maroon-700 bg-maroon-700 px-4 py-2 text-base font-semibold text-white transition hover:bg-maroon-800"
         >
           Add another victim
         </button>
@@ -58,9 +58,9 @@ export default function VictimDetails({ victims, setVictims }: Props) {
 
       <div className="space-y-6">
         {victims.map((victim, index) => (
-          <div key={index} className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
+          <div key={index} className="rounded-3xl border border-gold-200 bg-ivory p-5">
             <div className="flex items-center justify-between gap-4">
-              <p className="text-base font-semibold text-slate-900">Victim {index + 1}</p>
+              <p className="text-base font-semibold text-ink-900">Victim {index + 1}</p>
               {victims.length > 1 && (
                 <button
                   type="button"
@@ -74,11 +74,11 @@ export default function VictimDetails({ victims, setVictims }: Props) {
 
             <div className="grid gap-6 md:grid-cols-2 mt-4">
               <div>
-                <label className="text-base font-medium text-slate-700">Victim type</label>
+                <label className="text-base font-medium text-ink-900">Victim type</label>
                 <select
                   value={victim.type || ""}
                   onChange={(e) => handleFieldChange(index, "type", e.target.value)}
-                  className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none ring-0"
+                  className="mt-2 w-full rounded-2xl border border-gold-200 bg-white px-4 py-3 outline-none ring-0"
                 >
                   <option value="">Select type</option>
                   <option value="Person">Person</option>
@@ -87,26 +87,26 @@ export default function VictimDetails({ victims, setVictims }: Props) {
                 </select>
               </div>
               <div>
-                <label className="text-base font-medium text-slate-700">Name</label>
+                <label className="text-base font-medium text-ink-900">Name</label>
                 <input
                   value={victim.name}
                   onChange={(e) => handleFieldChange(index, "name", e.target.value)}
-                  className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none ring-0"
+                  className="mt-2 w-full rounded-2xl border border-gold-200 bg-white px-4 py-3 outline-none ring-0"
                   placeholder="Victim name"
                 />
               </div>
             </div>
 
-            <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-white p-4">
+            <div className="mt-4 rounded-2xl border border-dashed border-gold-300 bg-white p-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <p className="text-base font-semibold text-slate-800">Person photo</p>
-                  <p className="text-base text-slate-500">Attach a photo for this victim when available.</p>
+                  <p className="text-base font-semibold text-ink-900">Person photo</p>
+                  <p className="text-base text-ink-600">Attach a photo for this victim when available.</p>
                 </div>
                 <button
                   type="button"
                   onClick={() => fileInputRefs.current[index]?.click()}
-                  className="flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-base font-medium text-slate-700"
+                  className="flex items-center gap-2 rounded-full border border-gold-200 bg-ivory px-4 py-2 text-base font-medium text-ink-900"
                 >
                   <Camera size={16} />
                   Upload photo
@@ -124,28 +124,28 @@ export default function VictimDetails({ victims, setVictims }: Props) {
               {victim.photoUrl ? (
                 <div className="mt-4 flex items-center gap-4">
                   <img src={victim.photoUrl} alt={victim.name || "Victim photo"} className="h-20 w-20 rounded-2xl object-cover" />
-                  <p className="text-base text-slate-600">{victim.photoName || "Photo attached"}</p>
+                  <p className="text-base text-ink-600">{victim.photoName || "Photo attached"}</p>
                 </div>
               ) : null}
             </div>
 
             <div className="grid gap-6 md:grid-cols-2 mt-4">
               <div>
-                <label className="text-base font-medium text-slate-700">Contact details</label>
+                <label className="text-base font-medium text-ink-900">Contact details</label>
                 <input
                   value={victim.contact}
                   onChange={(e) => handleFieldChange(index, "contact", e.target.value)}
-                  className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none ring-0"
+                  className="mt-2 w-full rounded-2xl border border-gold-200 bg-white px-4 py-3 outline-none ring-0"
                   placeholder="Phone, email, or address"
                 />
               </div>
               <div>
-                <label className="text-base font-medium text-slate-700">Statement</label>
+                <label className="text-base font-medium text-ink-900">Statement</label>
                 <textarea
                   rows={4}
                   value={victim.statement}
                   onChange={(e) => handleFieldChange(index, "statement", e.target.value)}
-                  className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none ring-0"
+                  className="mt-2 w-full rounded-2xl border border-gold-200 bg-white px-4 py-3 outline-none ring-0"
                   placeholder="Record victim account"
                 />
               </div>

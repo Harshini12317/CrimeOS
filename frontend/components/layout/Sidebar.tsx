@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   FaHome,
   FaClipboardList,
@@ -23,44 +24,56 @@ const menu = [
   },
   {
     title: "Complaint History",
-    href: "#",
+    href: "/complaints/history",
     icon: <FaHistory />,
   },
   {
     title: "Analytics",
-    href: "#",
+    href: "/analytics",
     icon: <FaChartBar />,
   },
   {
     title: "Heatmap",
-    href: "#",
+    href: "/heatmap",
     icon: <FaMapMarkedAlt />,
   },
   {
     title: "Settings",
-    href: "#",
+    href: "/settings",
     icon: <FaCog />,
   },
 ];
 
 export default function Sidebar() {
-  return (
-    <aside className="w-64 bg-slate-900 text-white min-h-screen p-5">
-      <h1 className="text-2xl font-bold mb-10">
-        CrimeOS
-      </h1>
+  const pathname = usePathname();
 
-      <nav className="space-y-3">
-        {menu.map((item) => (
-          <Link
-            key={item.title}
-            href={item.href}
-            className="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-700 transition"
-          >
-            {item.icon}
-            {item.title}
-          </Link>
-        ))}
+  return (
+    <aside className="w-64 bg-maroon-800 text-ivory min-h-screen p-5 flex flex-col">
+      <div className="mb-8">
+        <h1 className="text-2xl font-display font-bold text-ivory">
+          CrimeOS
+        </h1>
+        <div className="h-px bg-gold-500/60 mt-4" />
+      </div>
+
+      <nav className="space-y-1">
+        {menu.map((item) => {
+          const active = pathname === item.href;
+          return (
+            <Link
+              key={item.title}
+              href={item.href}
+              className={`flex items-center gap-3 p-3 rounded-md border-l-2 transition-colors ${
+                active
+                  ? "bg-maroon-700 border-gold-500 text-gold-300"
+                  : "border-transparent text-ivory/80 hover:bg-maroon-700 hover:border-gold-500/50 hover:text-gold-200"
+              }`}
+            >
+              <span className="text-base">{item.icon}</span>
+              <span className="text-sm font-medium">{item.title}</span>
+            </Link>
+          );
+        })}
       </nav>
     </aside>
   );

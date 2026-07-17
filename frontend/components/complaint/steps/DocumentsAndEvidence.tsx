@@ -13,11 +13,11 @@ export default function DocumentsAndEvidence({ onDocumentsSubmit }: Props) {
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
 
   return (
-    <div className="space-y-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+    <div className="space-y-6 rounded-3xl border border-gold-200 bg-white p-6 shadow-sm">
       <div>
-        <p className="text-base font-medium text-blue-600">Step 1</p>
-        <h2 className="mt-1 text-2xl font-semibold text-slate-900">Documents and evidence</h2>
-        <p className="mt-2 text-base text-slate-500">
+        <p className="text-base font-medium text-gold-700">Step 1</p>
+        <h2 className="mt-1 text-2xl font-semibold text-ink-900">Documents and evidence</h2>
+        <p className="mt-2 text-base text-ink-600">
           Upload supporting documents, photos, audio, or videos and capture them as evidence for this complaint.
         </p>
       </div>
@@ -44,11 +44,11 @@ export default function DocumentsAndEvidence({ onDocumentsSubmit }: Props) {
                     <FileText className="h-4 w-4" />
                   </div>
                   <div>
-                    <p className="font-semibold text-slate-900">{item.file.name}</p>
-                    <p className="text-sm text-slate-500">{item.type || "Unknown file type"}</p>
+                    <p className="font-semibold text-ink-900">{item.file.name}</p>
+                    <p className="text-sm text-ink-600">{item.type || "Unknown file type"}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 rounded-full bg-slate-50 px-3 py-1 text-sm text-slate-600">
+                <div className="flex items-center gap-2 rounded-full bg-ivory px-3 py-1 text-sm text-ink-600">
                   <Paperclip className="h-4 w-4" />
                   Attached
                 </div>

@@ -18,7 +18,7 @@ return(
 
 onClick={handleExtract}
 
-className="bg-indigo-600 text-white px-6 py-3 rounded-lg flex gap-2"
+className="bg-gold-600 text-white px-6 py-3 rounded-lg flex gap-2"
 
 >
 
