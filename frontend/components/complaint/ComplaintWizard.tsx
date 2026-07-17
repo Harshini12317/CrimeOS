@@ -91,8 +91,8 @@ export default function ComplaintWizard() {
         <div className="rounded-full bg-emerald-100 p-4 text-emerald-600">
           <CheckCircle2 className="h-10 w-10" />
         </div>
-        <h1 className="mt-6 text-3xl font-semibold text-slate-900">Complaint registered successfully</h1>
-        <p className="mt-3 max-w-xl text-base text-slate-600">
+        <h1 className="mt-6 text-3xl font-semibold text-ink-900">Complaint registered successfully</h1>
+        <p className="mt-3 max-w-xl text-base text-ink-600">
           The complaint has been saved to the registry and is ready for review by the assigned team.
         </p>
         <button
@@ -101,7 +101,7 @@ export default function ComplaintWizard() {
             setStep(1);
             setForm(initialForm);
           }}
-          className="mt-8 rounded-full bg-blue-600 px-5 py-3 text-base font-medium text-white transition hover:bg-blue-700"
+          className="mt-8 rounded-full bg-maroon-700 px-5 py-3 text-base font-medium text-white transition hover:bg-maroon-800"
         >
           Register another complaint
         </button>
@@ -110,12 +110,12 @@ export default function ComplaintWizard() {
   }
 
   return (
-    <div className="w-full max-w-full rounded-[32px] border border-slate-200 bg-white/90 p-6 text-base shadow-[0_25px_80px_rgba(15,23,42,0.08)] backdrop-blur sm:p-8 lg:p-10">
+    <div className="w-full max-w-full rounded-[32px] border border-gold-200 bg-white/90 p-6 text-base shadow-[0_25px_80px_rgba(15,23,42,0.08)] backdrop-blur sm:p-8 lg:p-10">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="max-w-3xl">
-          <p className="text-base font-semibold uppercase tracking-[0.3em] text-blue-600">Complaint register</p>
-          <h1 className="mt-2 text-3xl font-semibold text-slate-900">Register a new complaint</h1>
-          <p className="mt-3 text-base text-slate-600">
+          <p className="text-base font-semibold uppercase tracking-[0.3em] text-gold-700">Complaint register</p>
+          <h1 className="mt-2 text-3xl font-semibold text-ink-900">Register a new complaint</h1>
+          <p className="mt-3 text-base text-ink-600">
             Follow the guided steps below to capture evidence, complainant information, and case notes in one place.
           </p>
         </div>
@@ -124,28 +124,28 @@ export default function ComplaintWizard() {
           <button
             type="button"
             onClick={addVictim}
-            className="rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-base text-slate-700 transition hover:border-blue-200 hover:text-blue-700"
+            className="rounded-full border border-gold-200 bg-ivory px-4 py-2 text-base text-ink-900 transition hover:border-gold-300 hover:text-gold-700"
           >
             Add victim
           </button>
           <button
             type="button"
             onClick={addSuspect}
-            className="rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-base text-slate-700 transition hover:border-blue-200 hover:text-blue-700"
+            className="rounded-full border border-gold-200 bg-ivory px-4 py-2 text-base text-ink-900 transition hover:border-gold-300 hover:text-gold-700"
           >
             Add suspect
           </button>
           <button
             type="button"
             onClick={addComplainant}
-            className="rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-base text-slate-700 transition hover:border-blue-200 hover:text-blue-700"
+            className="rounded-full border border-gold-200 bg-ivory px-4 py-2 text-base text-ink-900 transition hover:border-gold-300 hover:text-gold-700"
           >
             Add complainant
           </button>
           <button
             type="button"
             onClick={() => setStep(2)}
-            className="rounded-full border border-blue-600 bg-blue-600 px-4 py-2 text-base font-semibold text-white transition hover:bg-blue-700"
+            className="rounded-full border border-maroon-700 bg-maroon-700 px-4 py-2 text-base font-semibold text-white transition hover:bg-maroon-800"
           >
             Complaint details
           </button>
@@ -153,10 +153,10 @@ export default function ComplaintWizard() {
       </div>
 
       <div className="mt-6 flex items-center justify-between gap-4">
-        <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-base text-slate-600">
+        <div className="rounded-2xl border border-gold-200 bg-ivory px-4 py-3 text-base text-ink-600">
           {progressLabel}
         </div>
-        <div className="text-base text-slate-500">
+        <div className="text-base text-ink-600">
           {t("navigation.tip", "complaints", "Complete each section carefully.")}
         </div>
       </div>

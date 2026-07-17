@@ -77,7 +77,7 @@ export default function FileUploader({ onFilesChange, onExtractComplete }: Props
   }
 
   function getIcon(type: string) {
-    if (type.startsWith("image")) return <ImageIcon className="text-blue-600" />;
+    if (type.startsWith("image")) return <ImageIcon className="text-gold-700" />;
     if (type.startsWith("audio")) return <Music className="text-green-600" />;
     if (type.startsWith("video")) return <Video className="text-red-600" />;
     return <FileText className="text-orange-500" />;
@@ -91,31 +91,31 @@ export default function FileUploader({ onFilesChange, onExtractComplete }: Props
         className={`border-2 border-dashed rounded-xl p-10 transition cursor-pointer
         ${
           isDragActive
-            ? "border-blue-600 bg-blue-50"
-            : "border-gray-300 hover:border-blue-500 hover:bg-gray-50"
+            ? "border-maroon-700 bg-gold-50"
+            : "border-gold-300 hover:border-blue-500 hover:bg-gray-50"
         }`}
       >
         <input {...getInputProps()} />
 
         <div className="flex flex-col items-center">
-          <UploadCloud size={60} className="text-blue-600" />
+          <UploadCloud size={60} className="text-gold-700" />
 
           <h2 className="text-2xl font-semibold mt-4">
             Upload Complaint Documents
           </h2>
 
-          <p className="text-gray-500 mt-2 text-center">
+          <p className="text-ink-600 mt-2 text-center">
             Drag & Drop PDF, Images, Audio, Video or Documents
           </p>
 
           <button
             type="button"
-            className="mt-6 bg-blue-600 text-white px-6 py-2 rounded-lg"
+            className="mt-6 bg-maroon-700 text-white px-6 py-2 rounded-lg"
           >
             Browse Files
           </button>
 
-          <p className="text-sm text-gray-400 mt-3">
+          <p className="text-sm text-ink-600 mt-3">
             Supports PDF • JPG • PNG • MP3 • MP4 • DOCX
           </p>
         </div>
@@ -142,14 +142,14 @@ export default function FileUploader({ onFilesChange, onExtractComplete }: Props
                   <div>
                     <p className="font-medium">{item.file.name}</p>
 
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-ink-600">
                       {(item.file.size / 1024 / 1024).toFixed(2)} MB
                     </p>
                   </div>
                 </div>
 
                 <div className="flex gap-6 items-center">
-                  <span className="text-sm bg-gray-100 px-3 py-1 rounded-full">
+                  <span className="text-sm bg-gold-100 px-3 py-1 rounded-full">
                     {item.type || item.category}
                   </span>
 
@@ -167,14 +167,14 @@ export default function FileUploader({ onFilesChange, onExtractComplete }: Props
       )}
 
       {/* AI Card */}
-      <div className="rounded-xl border bg-indigo-50 p-6">
+      <div className="rounded-xl border bg-gold-50 p-6">
         <div className="flex justify-between items-center">
           <div>
             <h3 className="font-semibold text-lg">
               AI Document Extraction
             </h3>
 
-            <p className="text-gray-600 mt-2">
+            <p className="text-ink-600 mt-2">
               Extract complaint details and automatically classify uploaded
               documents into evidence categories.
             </p>
@@ -205,7 +205,7 @@ export default function FileUploader({ onFilesChange, onExtractComplete }: Props
           <button
             onClick={extractDocuments}
             disabled={loading}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg flex gap-2 items-center disabled:opacity-50"
+            className="bg-gold-600 hover:bg-gold-700 text-white px-6 py-3 rounded-lg flex gap-2 items-center disabled:opacity-50"
           >
             <Sparkles size={20} />
 

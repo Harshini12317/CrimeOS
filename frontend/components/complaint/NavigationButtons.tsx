@@ -8,12 +8,12 @@ interface Props {
 
 export default function NavigationButtons({ currentStep, totalSteps, onBack, onNext, onSubmit }: Props) {
   return (
-    <div className="mt-8 flex flex-col-reverse gap-3 border-t border-slate-200 pt-6 sm:flex-row sm:items-center sm:justify-between">
+    <div className="mt-8 flex flex-col-reverse gap-3 border-t border-gold-200 pt-6 sm:flex-row sm:items-center sm:justify-between">
       <button
         type="button"
         onClick={onBack}
         disabled={currentStep === 1}
-        className="rounded-full border border-slate-200 bg-white px-5 py-3 text-base font-medium text-slate-700 transition disabled:cursor-not-allowed disabled:opacity-40"
+        className="rounded-full border border-gold-200 bg-white px-5 py-3 text-base font-medium text-ink-900 transition disabled:cursor-not-allowed disabled:opacity-40"
       >
         Back
       </button>
@@ -23,7 +23,7 @@ export default function NavigationButtons({ currentStep, totalSteps, onBack, onN
           <button
             type="button"
             onClick={onNext}
-            className="rounded-full bg-blue-600 px-5 py-3 text-base font-semibold text-white transition hover:bg-blue-700"
+            className="rounded-full bg-maroon-700 px-5 py-3 text-base font-semibold text-white transition hover:bg-maroon-800"
           >
             Continue
           </button>
@@ -31,7 +31,7 @@ export default function NavigationButtons({ currentStep, totalSteps, onBack, onN
           <button
             type="button"
             onClick={onSubmit}
-            className="rounded-full bg-emerald-600 px-5 py-3 text-base font-semibold text-white transition hover:bg-emerald-700"
+            className="rounded-full bg-gold-600 px-5 py-3 text-base font-semibold text-maroon-900 transition hover:bg-gold-700"
           >
             Submit complaint
           </button>

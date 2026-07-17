@@ -1,3 +1,5 @@
+import { Check } from "lucide-react";
+
 interface Props {
   currentStep: number;
 }
@@ -13,10 +15,24 @@ export default function Stepper({ currentStep }: Props) {
 
         return (
           <div key={index} className="flex flex-1 flex-col items-center">
-            <div className={`flex h-10 w-10 items-center justify-center rounded-full ${isCompleted ? "bg-blue-600 text-white" : isActive ? "bg-slate-900 text-white" : "bg-gray-300 text-slate-700"}`}>
-              {index + 1}
+            <div
+              className={`flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold transition-colors ${
+                isCompleted
+                  ? "bg-gold-500 text-maroon-900"
+                  : isActive
+                  ? "bg-maroon-800 text-ivory ring-2 ring-gold-500 ring-offset-2"
+                  : "border-2 border-gold-200 bg-white text-ink-600"
+              }`}
+            >
+              {isCompleted ? <Check className="h-4 w-4" /> : index + 1}
             </div>
-            <p className={`mt-2 text-sm font-medium ${isCompleted || isActive ? "text-slate-900" : "text-slate-500"}`}>{step}</p>
+            <p
+              className={`mt-2 text-sm font-medium ${
+                isCompleted || isActive ? "text-maroon-800" : "text-ink-600"
+              }`}
+            >
+              {step}
+            </p>
           </div>
         );
       })}

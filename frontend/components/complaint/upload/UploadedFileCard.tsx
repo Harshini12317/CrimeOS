@@ -30,7 +30,7 @@ return(
 
 </p>
 
-<p className="text-gray-500 text-sm">
+<p className="text-ink-600 text-sm">
 
 {file.type}
 
