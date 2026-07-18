@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.routes.investigation import router as investigation_router
+from app.routes.auth import router as auth_router
 
 app = FastAPI(title="CrimeOS Backend")
 app.add_middleware(
@@ -13,8 +14,4 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.include_router(investigation_router)
-
-# now these endpoints exist:
-#   POST /investigation/cases/{case_id}/suggest-investigation
-#   POST /investigation/suggestions/{suggestion_id}/step-by-step-guidance
-#   GET  /investigation/health
+app.include_router(auth_router)
