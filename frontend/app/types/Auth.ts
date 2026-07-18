@@ -5,15 +5,4 @@ export interface User {
   name: string;
   email: string;
   role: Role;
-  station_id: number | null;
-}
-
-export interface LoginResponse {
-  access_token: string;
-  user: User;
-}
-
-export interface LoginPayload {
-  email: string;
-  password: string;
 }
