@@ -1,12 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { jwtVerify } from "jose";
 
-// Add every path prefix that requires login here.
-const PROTECTED_PREFIXES = ["/dashboard", "/legal-requests"];
+const PROTECTED_PREFIXES = ["/dashboard"];
 
-// Paths that require a *specific* role, beyond just being logged in.
+// Each role's own folder is locked to that role. An SHO hitting
+// /dashboard/io directly gets redirected to /unauthorized, not just
+// hidden by the UI.
 const ROLE_ROUTES: Record<string, string[]> = {
-  "/legal-requests": ["LEGAL_ADVISOR"],
+  "/dashboard/io": ["IO"],
+  "/dashboard/sho": ["SHO"],
+  "/dashboard/legal-advisor": ["LEGAL_ADVISOR"],
+};
+
+const ROLE_HOME: Record<string, string> = {
+  IO: "/dashboard/io",
+  SHO: "/dashboard/sho",
+  LEGAL_ADVISOR: "/dashboard/legal-advisor",
 };
 
 export async function middleware(request: NextRequest) {
@@ -23,11 +32,15 @@ export async function middleware(request: NextRequest) {
   }
 
   try {
-    // Verifies the signature here in the edge runtime — this must be the
-    // SAME secret as Flask's JWT_SECRET_KEY (env var below).
     const secret = new TextEncoder().encode(process.env.JWT_SECRET_KEY);
     const { payload } = await jwtVerify(token, secret);
     const role = payload.role as string | undefined;
+
+    // Bare /dashboard -> send straight to that role's own dashboard.
+    if (pathname === "/dashboard" || pathname === "/dashboard/") {
+      const home = role ? ROLE_HOME[role] : undefined;
+      return NextResponse.redirect(new URL(home ?? "/unauthorized", request.url));
+    }
 
     const requiredRoles = Object.entries(ROLE_ROUTES).find(([prefix]) =>
       pathname.startsWith(prefix)
@@ -37,7 +50,6 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL("/unauthorized", request.url));
     }
   } catch {
-    // Expired or tampered token — clear it and send back to login.
     const response = NextResponse.redirect(new URL("/login", request.url));
     response.cookies.delete("crimeos_token");
     return response;
@@ -47,5 +59,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/legal-requests/:path*"],
+  matcher: ["/dashboard/:path*"],
 };

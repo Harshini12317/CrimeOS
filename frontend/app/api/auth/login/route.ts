@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
-// uvicorn's default port is 8000, not 5000 — make sure this matches
-// whatever port your FastAPI backend actually runs on.
-const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api";
+// uvicorn's default port is 8000 — match whatever port FastAPI runs on.
+const BACKEND_API_URL = process.env.BACKEND_API_URL ?? "http://localhost:8000/api";
 
 export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => null);
@@ -10,26 +9,27 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Email and password are required." }, { status: 400 });
   }
 
-  let flaskRes: Response;
+  let backendRes: Response;
   try {
-    flaskRes = await fetch(`${BACKEND_API_URL}/auth/login`, {
+    backendRes = await fetch(`${BACKEND_API_URL}/auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
   } catch {
-    // Backend unreachable — wrong port, not running, etc. Return real
-    // JSON instead of letting Next.js return an HTML error page.
     return NextResponse.json(
       { error: `Could not reach backend at ${BACKEND_API_URL}. Is it running?` },
       { status: 502 }
     );
   }
 
-  const data = await flaskRes.json().catch(() => ({}));
+  const data = await backendRes.json().catch(() => ({}));
 
-  if (!flaskRes.ok) {
-    return NextResponse.json({ error: data.error ?? data.detail ?? "Login failed." }, { status: flaskRes.status });
+  if (!backendRes.ok) {
+    return NextResponse.json(
+      { error: data.error ?? data.detail ?? "Login failed." },
+      { status: backendRes.status }
+    );
   }
 
   const response = NextResponse.json({ user: data.user });
@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
-    maxAge: 60 * 60 * 8, // 8 hours — keep in sync with backend token expiry
+    maxAge: 60 * 60 * 8,
   });
   return response;
 }

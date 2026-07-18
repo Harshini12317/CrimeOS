@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api";
+const BACKEND_API_URL = process.env.BACKEND_API_URL ?? "http://localhost:8000/api";
 
 export async function GET(request: NextRequest) {
   const token = request.cookies.get("crimeos_token")?.value;
@@ -8,9 +8,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
   }
 
-  let flaskRes: Response;
+  let backendRes: Response;
   try {
-    flaskRes = await fetch(`${BACKEND_API_URL}/auth/me`, {
+    backendRes = await fetch(`${BACKEND_API_URL}/auth/me`, {
       headers: { Authorization: `Bearer ${token}` },
     });
   } catch {
@@ -20,10 +20,10 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  if (!flaskRes.ok) {
+  if (!backendRes.ok) {
     return NextResponse.json({ error: "Session expired." }, { status: 401 });
   }
 
-  const user = await flaskRes.json();
+  const user = await backendRes.json();
   return NextResponse.json({ user });
 }

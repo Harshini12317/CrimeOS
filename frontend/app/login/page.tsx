@@ -31,7 +31,6 @@ function LoginForm() {
 
   return (
     <div className="min-h-screen flex bg-ivory">
-      {/* Identity panel */}
       <div className="hidden lg:flex lg:w-1/2 flex-col justify-between bg-maroon-600 text-white px-16 py-14">
         <div>
           <span className="text-sm tracking-[0.2em] text-gold-300 font-semibold">CRIME OS</span>
@@ -54,7 +53,6 @@ function LoginForm() {
         </div>
       </div>
 
-      {/* Form panel */}
       <div className="flex flex-1 items-center justify-center px-6 py-12">
         <div className="w-full max-w-sm">
           <div className="mb-8 lg:hidden">
@@ -125,7 +123,6 @@ function LoginForm() {
   );
 }
 
-// useSearchParams requires a Suspense boundary in the App Router.
 export default function LoginPage() {
   return (
     <Suspense fallback={null}>

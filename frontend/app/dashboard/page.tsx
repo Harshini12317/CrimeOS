@@ -1,43 +1,6 @@
-import Sidebar from "@/components/layout/Sidebar";
-import Navbar from "@/components/layout/Navbar";
-import DashboardCard from "@/components/dashboard/DashboardCards";
-
-export default function Dashboard() {
-  return (
-    <div className="flex">
-      <Sidebar />
-
-      <main className="flex-1 bg-gray-100 min-h-screen">
-        <Navbar />
-
-        <div className="p-8">
-
-          <div className="grid grid-cols-4 gap-6">
-
-            <DashboardCard
-              title="Today's Complaints"
-              value="124"
-            />
-
-            <DashboardCard
-              title="Pending"
-              value="36"
-            />
-
-            <DashboardCard
-              title="Closed"
-              value="88"
-            />
-
-            <DashboardCard
-              title="High Risk"
-              value="12"
-            />
-
-          </div>
-
-        </div>
-      </main>
-    </div>
-  );
+export default function DashboardIndexPage() {
+  // middleware.ts redirects /dashboard to the correct role folder before
+  // this ever renders. This only shows up if middleware somehow didn't
+  // run (e.g. during local debugging).
+  return <div className="p-8 text-ink-600">Redirecting to your dashboard…</div>;
 }
