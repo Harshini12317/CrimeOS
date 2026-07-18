@@ -1,9 +1,9 @@
 """
 FR2: AI-Powered Investigation Paths — router.
 
-This is an APIRouter, not a standalone app — mount it into the shared
-backend app (see integration snippet in README) so FR1 and FR2 run as
-one deployed service sharing the same DB pool from database/db.py.
+This is an APIRouter, not a standalone app — mounted into the shared
+backend app in main.py (already wired: from app.routes.investigation
+import router as investigation_router).
 
 Endpoints:
   POST /investigation/cases/{case_id}/suggest-investigation
@@ -12,9 +12,10 @@ Endpoints:
 
   POST /investigation/suggestions/{suggestion_id}/step-by-step-guidance
       -> ONLY called when officer explicitly requests it (FR2b)
-"""
-from typing import Optional
 
+Both endpoints require login (IO or SHO) — added on top of the original
+implementation, which had no auth check at all.
+"""
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy import text
@@ -25,8 +26,14 @@ from investigation.query_builder import build_query_from_complaint
 from investigation.retrieval import retrieve_all
 from investigation.llm_synthesis import generate_suggestion, generate_step_by_step
 from models import InvestigationSuggestion
+from app.core.deps import require_role
+from models.user import User, Role
 
 router = APIRouter(prefix="/investigation", tags=["FR2 - Investigation Paths"])
+
+# Both IO and SHO can pull investigation suggestions. Add Role.LEGAL_ADVISOR
+# here too if legal advisors should be able to view (not just request) them.
+allowed_roles = require_role(Role.IO, Role.SHO)
 
 
 def get_db():
@@ -55,7 +62,12 @@ class SuggestRequest(BaseModel):
 
 
 @router.post("/cases/{case_id}/suggest-investigation")
-def suggest_investigation(case_id: str, req: SuggestRequest = SuggestRequest(), db: Session = Depends(get_db)):
+def suggest_investigation(
+    case_id: str,
+    req: SuggestRequest = SuggestRequest(),
+    db: Session = Depends(get_db),
+    user: User = Depends(allowed_roles),
+):
     complaint = _fetch_complaint_for_case(db, case_id)
 
     rq = build_query_from_complaint(complaint)
@@ -79,7 +91,7 @@ def suggest_investigation(case_id: str, req: SuggestRequest = SuggestRequest(), 
             "legal_section_ids": [str(s["id"]) for s in retrieved["legal_sections"]],
             "landmark_ids": [str(l["id"]) for l in retrieved["landmarks"]],
         },
-        created_by="system",
+        created_by=str(user.id),
     )
     db.add(suggestion)
     db.commit()
@@ -89,7 +101,11 @@ def suggest_investigation(case_id: str, req: SuggestRequest = SuggestRequest(), 
 
 
 @router.post("/suggestions/{suggestion_id}/step-by-step-guidance")
-def step_by_step_guidance(suggestion_id: str, officer_id: Optional[str] = None, db: Session = Depends(get_db)):
+def step_by_step_guidance(
+    suggestion_id: str,
+    db: Session = Depends(get_db),
+    user: User = Depends(allowed_roles),
+):
     """FR2b - on demand only. Called when the officer clicks the button."""
     suggestion = db.get(InvestigationSuggestion, suggestion_id)
     if not suggestion:
@@ -110,7 +126,7 @@ def step_by_step_guidance(suggestion_id: str, officer_id: Optional[str] = None, 
     guidance = generate_step_by_step(complaint_facts, prior_suggestion)
 
     suggestion.step_by_step_guidance = guidance
-    suggestion.guidance_requested_by = officer_id
+    suggestion.guidance_requested_by = str(user.id)  # from the token, not client-supplied
     db.execute(
         text("UPDATE investigation_suggestions SET guidance_requested_at = now() WHERE id = :id"),
         {"id": suggestion_id},
