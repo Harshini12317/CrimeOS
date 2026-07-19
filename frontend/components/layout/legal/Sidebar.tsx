@@ -21,12 +21,12 @@ const menu = [
   },
   {
     title: "Legal Review",
-    href: "/legal-review", // verify AI suggested sections, review legal requests, add legal opinions, final clearance
+    href: "/legal/legal-review", // verify AI suggested sections, review legal requests, add legal opinions, final clearance
     icon: <FaMagnifyingGlass />,
   },
   {
     title: "Legal Library",
-    href: "/legal-library", // search BNS/BNSS/BSA sections and case law
+    href: "/legal/legal-library", // search BNS/BNSS/BSA sections and case law
     icon: <FaBookBookmark />,
   },
 ];
