@@ -166,7 +166,7 @@ export default function ComplaintWizard() {
       </div>
 
       <div className="mt-10">
-        {step === 1 && <DocumentsAndEvidence onDocumentsSubmit={(uploadedFiles) => { const newAttachments = uploadedFiles.map((file) => ({ id: file.id, fileName: file.file.name, fileType: file.file.type || "Unknown", documentUrl: file.cloudinaryUrl })); setForm((prev) => ({ ...prev, attachments: [...prev.attachments, ...newAttachments] })); }} />}
+        {step === 1 && <DocumentsAndEvidence onDocumentsSubmit={(uploadedFiles) => { const newAttachments = uploadedFiles.map((file) => ({ id: String(file.id), fileName: file.file.name, fileType: file.file.type || "Unknown", documentUrl: file.cloudinaryUrl })); setForm((prev) => ({ ...prev, attachments: [...prev.attachments, ...newAttachments] })); }} />}
         {step === 2 && <ComplaintDetails form={form} setForm={setForm} />}
         {step === 3 && <VictimDetails victims={form.victims} setVictims={setVictims} />}
         {step === 4 && <SuspectDetails suspects={form.suspects} setSuspects={setSuspects} />}

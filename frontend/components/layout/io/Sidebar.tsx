@@ -5,42 +5,36 @@ import { usePathname } from "next/navigation";
 import {
   FaHome,
   FaClipboardList,
-  FaHistory,
-  FaChartBar,
-  FaMapMarkedAlt,
-  FaCog,
+  FaLightbulb,
+  FaBook,
+  FaBalanceScaleRight,
 } from "react-icons/fa";
 
 const menu = [
   {
     title: "Dashboard",
-    href: "/dashboard",
+    href: "/dashboard/io", // Assigned cases, pending tasks, requests awaiting response, recently updated cases
     icon: <FaHome />,
   },
   {
-    title: "Register Complaint",
-    href: "/complaint",
+    title: "My Cases",
+    href: "/cases",       // assigned complaints, case details, timeline, evidence, investigation notes
     icon: <FaClipboardList />,
   },
   {
-    title: "Complaint History",
-    href: "/complaints/history",
-    icon: <FaHistory />,
+    title: "Legal Requests",
+    href: "/legal-request", // generate requests drafts, sent requests, upload response, AI respose analysis
+    icon: <FaBalanceScaleRight />,
   },
   {
-    title: "Analytics",
-    href: "/analytics",
-    icon: <FaChartBar />,
+    title: "AI assistant",
+    href: "/ai-assistant", // Complaint Analysis (OCR/STT/Translation),Investigation SOP, Legal Section Suggestions
+    icon: <FaLightbulb />,
   },
   {
-    title: "Heatmap",
-    href: "/heatmap",
-    icon: <FaMapMarkedAlt />,
-  },
-  {
-    title: "Settings",
-    href: "/settings",
-    icon: <FaCog />,
+    title: "Case summary",
+    href: "/case-summary", // AI generated case summary, Audit trail, export report, request case closure
+    icon: <FaBook />,
   },
 ];
 
@@ -49,12 +43,6 @@ export default function Sidebar() {
 
   return (
     <aside className="w-64 bg-maroon-800 text-ivory min-h-screen p-5 flex flex-col">
-      <div className="mb-8">
-        <h1 className="text-2xl font-display font-bold text-ivory">
-          CrimeOS
-        </h1>
-        <div className="h-px bg-gold-500/60 mt-4" />
-      </div>
 
       <nav className="space-y-1">
         {menu.map((item) => {
