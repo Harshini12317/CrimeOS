@@ -8,26 +8,26 @@ export default function LegalAdvisorDashboard() {
         <section className="rounded-lg border border-gold-200 bg-white p-5">
           <h2 className="font-medium text-ink-900">Requests Awaiting Review</h2>
           <p className="mt-1 text-sm text-ink-600">
-            Auto-generated legal requests to telecom operators, banks, and platforms.
+            Review cases, complaints, and legal requests awaiting your attention.
           </p>
           {/* TODO */}
         </section>
 
         <section className="rounded-lg border border-gold-200 bg-white p-5">
-          <h2 className="font-medium text-ink-900">Suggested Legal Sections</h2>
-          <p className="mt-1 text-sm text-ink-600">Relevant BNS/BNSS/BSA sections and case law, per case.</p>
+          <h2 className="font-medium text-ink-900">Case Review</h2>
+          <p className="mt-1 text-sm text-ink-600">View complaint details, investigation notes, evidence and timeline.</p>
           {/* TODO */}
         </section>
 
         <section className="rounded-lg border border-gold-200 bg-white p-5">
-          <h2 className="font-medium text-ink-900">Dispatched Requests</h2>
-          <p className="mt-1 text-sm text-ink-600">Track status and provider responses.</p>
+          <h2 className="font-medium text-ink-900">Legal Review</h2>
+          <p className="mt-1 text-sm text-ink-600">Verify AI suggested sections, review legal requests, add legal opinion.</p>
           {/* TODO */}
         </section>
 
         <section className="rounded-lg border border-gold-200 bg-white p-5">
-          <h2 className="font-medium text-ink-900">Response Analytics</h2>
-          <p className="mt-1 text-sm text-ink-600">Analysis over data returned by service providers.</p>
+          <h2 className="font-medium text-ink-900">Legal Library</h2>
+          <p className="mt-1 text-sm text-ink-600">Search BNS/BNSS/BSA sections and case laws.</p>
           {/* TODO */}
         </section>
       </div>
