@@ -60,7 +60,7 @@ def extract_structured_json(text: str) -> dict:
     
     try:
         response = client.models.generate_content(
-            model='gemini-3.5-flash',
+            model='gemini-3.1-flash-lite',
             contents=text[:15000],
             config=types.GenerateContentConfig(
                 system_instruction=EXTRACTION_SYSTEM_PROMPT,
