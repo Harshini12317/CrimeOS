@@ -1,14 +1,12 @@
 """
 Synthesis layer: takes the retrieved legal sections + landmark judgments
-and asks a SMALL model to reason over them and produce a structured
-suggestion. The model never invents section numbers from memory —
-it can only reference what was retrieved, which is the core hallucination
-guard of this design.
+and asks a model to reason over them and produce a structured suggestion.
+The model never invents section numbers from memory — it can only
+reference what was retrieved, which is the core hallucination guard
+of this design.
 
-Uses the new `google-genai` SDK (the old `google-generativeai` package is
-deprecated). Reads GOOGLE_API_KEY from env. Gemini supports forcing valid
-JSON output natively (response_mime_type), so no markdown-fence-stripping
-is needed.
+Uses Groq (OpenAI-compatible API, native JSON mode). Reads GROQ_API_KEY
+from env.
 
 Two separate calls, matching FR2's spec:
   - generate_suggestion(): FR2a/FR2c - path + recommended sections + case law
@@ -19,8 +17,7 @@ import json
 import os
 from typing import Dict, Any, List
 
-from google import genai
-from google.genai import types
+from groq import Groq
 
 from investigation.config import (
     LLM_MODEL_SUGGESTION,
@@ -29,11 +26,11 @@ from investigation.config import (
     LLM_MAX_TOKENS_GUIDANCE,
 )
 
-client = genai.Client(api_key=os.environ["GOOGLE_API_KEY"])
+client = Groq(api_key=os.environ["GROQ_API_KEY"])
 
-# --- Mock mode: set MOCK_LLM=1 in your .env to bypass real Gemini calls
+# --- Mock mode: set MOCK_LLM=1 in your .env to bypass real Groq calls
 # and test the rest of the pipeline (DB join, retrieval, storage) while
-# API quota issues are being sorted out separately.
+# API issues are being sorted out separately.
 MOCK_LLM = os.environ.get("MOCK_LLM", "0") == "1"
 
 _MOCK_SUGGESTION = {
@@ -46,7 +43,7 @@ _MOCK_SUGGESTION = {
         {"act_code": "MOCK", "section_number": "000", "title": "Mock section", "relevance_reason": "This is placeholder data - MOCK_LLM=1 is set"}
     ],
     "case_law_refs": [],
-    "notes": "MOCK MODE ACTIVE - set MOCK_LLM=0 or remove it once your Gemini quota is fixed",
+    "notes": "MOCK MODE ACTIVE - set MOCK_LLM=0 or remove it once your Groq setup is fixed",
 }
 
 _MOCK_GUIDANCE = {
@@ -107,17 +104,17 @@ def _generate_json(model_name: str, system_prompt: str, max_tokens: int, user_co
             return _MOCK_SUGGESTION
         return _MOCK_GUIDANCE
 
-    response = client.models.generate_content(
+    response = client.chat.completions.create(
         model=model_name,
-        contents=json.dumps(user_content, indent=2),
-        config=types.GenerateContentConfig(
-            system_instruction=system_prompt,
-            max_output_tokens=max_tokens,
-            response_mime_type="application/json",
-            temperature=0.2,  # low temperature - this is a factual retrieval-grounded task
-        ),
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": json.dumps(user_content, indent=2)},
+        ],
+        max_tokens=max_tokens,
+        temperature=0.2,  # low temperature - this is a factual retrieval-grounded task
+        response_format={"type": "json_object"},  # Groq's native JSON mode
     )
-    return json.loads(response.text)
+    return json.loads(response.choices[0].message.content)
 
 
 def generate_suggestion(

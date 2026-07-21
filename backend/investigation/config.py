@@ -25,8 +25,8 @@ E5_QUERY_PREFIX = "query: "
 # Using Google Gemini for now (GOOGLE_API_KEY). Swap-friendly: only
 # llm_synthesis.py needs to change if this moves to a different provider
 # later, since router.py just calls generate_suggestion()/generate_step_by_step().
-LLM_MODEL_SUGGESTION = "gemini-2.0-flash"   # FR2a: path + sections + case law
-LLM_MODEL_GUIDANCE = "gemini-2.0-flash"     # FR2c: on-demand step-by-step guidance
+LLM_MODEL_SUGGESTION = "llama-3.3-70b-versatile"
+LLM_MODEL_GUIDANCE = "llama-3.3-70b-versatile"     
 LLM_MAX_TOKENS_SUGGESTION = 1200
 LLM_MAX_TOKENS_GUIDANCE = 1500
 

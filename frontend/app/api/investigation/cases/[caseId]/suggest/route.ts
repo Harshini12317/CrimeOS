@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 
-// Your `investigation` router has NO /api prefix (unlike /auth), so this
-// strips a trailing /api off BACKEND_API_URL to get the bare backend root.
-const BACKEND_ROOT = (process.env.BACKEND_API_URL ?? "http://localhost:8000/api").replace(/\/api\/?$/, "");
+const BACKEND_ROOT = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000");
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { caseId: string } }
+  { params }: { params: Promise<{ caseId: string }> }
 ) {
+  const { caseId } = await params;
+
   const token = request.cookies.get("crimeos_token")?.value;
   if (!token) {
     return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
@@ -18,7 +18,7 @@ export async function POST(
   let backendRes: Response;
   try {
     backendRes = await fetch(
-      `${BACKEND_ROOT}/investigation/cases/${params.caseId}/suggest-investigation`,
+      `${BACKEND_ROOT}/investigation/cases/${caseId}/suggest-investigation`,
       {
         method: "POST",
         headers: {

@@ -1,12 +1,19 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import GuidanceStepper from "@/components/investigation/GuidanceStepper";
 
 interface RecommendedSection {
   code?: string;
   act?: string;
   title?: string;
   [key: string]: unknown;
+}
+
+interface GuidanceStep {
+  step_number: number;
+  action: string;
+  legal_basis?: string;
 }
 
 interface SuggestionResult {
@@ -145,12 +152,7 @@ export default function CaseInvestigationSuggester() {
           )}
 
           {guidance !== null && (
-            <div>
-              <h3 className="text-sm font-medium text-ink-900">Step-by-step guidance</h3>
-              <pre className="mt-1 whitespace-pre-wrap text-sm text-ink-600">
-                {typeof guidance === "string" ? guidance : JSON.stringify(guidance, null, 2)}
-              </pre>
-            </div>
+            <GuidanceStepper steps={(guidance as { steps: GuidanceStep[] }).steps ?? []} />
           )}
         </div>
       )}
