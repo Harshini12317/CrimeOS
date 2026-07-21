@@ -6,6 +6,7 @@ export async function POST(
   request: NextRequest,
   { params }: { params: { suggestionId: string } }
 ) {
+  const { suggestionId } = await params;
   const token = request.cookies.get("crimeos_token")?.value;
   if (!token) {
     return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
@@ -14,7 +15,7 @@ export async function POST(
   let backendRes: Response;
   try {
     backendRes = await fetch(
-      `${BACKEND_ROOT}/investigation/suggestions/${params.suggestionId}/step-by-step-guidance`,
+      `${BACKEND_ROOT}/investigation/suggestions/${suggestionId}/step-by-step-guidance`,
       {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
