@@ -1,4 +1,3 @@
-
 # Next.js
 .next/
 node_modules/
@@ -8,11 +7,12 @@ frontend/node_modules/
 # Python
 __pycache__/
 .venv/
-.venv/
+venv/
 backend/__pycache__/
 backend/.venv/
-backend/.venv/
+backend/venv/
 backend/app/__pycache__/
+
 # Environment files
 .env
 .env.local
@@ -26,5 +26,5 @@ Thumbs.db
 # Logs
 *.log
 
-#scripts
+# Scripts
 backend/scripts/seed_users.py

@@ -226,7 +226,7 @@ Rules:
 """
 
 
-def llm_extract(text: str, model: str = "gemini-2.5-flash") -> Optional[Dict[str, Any]]:
+def llm_extract(text: str, model: str = "gemini-3.1-flash-lite") -> Optional[Dict[str, Any]]:
     api_key = os.environ.get("GOOGLE_API_KEY")
     ...
     client = genai.Client(api_key=api_key)

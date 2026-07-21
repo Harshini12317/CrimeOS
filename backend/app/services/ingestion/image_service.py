@@ -5,7 +5,7 @@ CrimeOS Image Ingestion Service
 This module provides a production-ready service and command-line interface (CLI)
 for extracting structured crime investigation information from images.
 
-It uses the Google Gemini 2.5 Flash model (via google-generativeai SDK) to
+It uses the Google Gemini 3.5 Flash model (via google-generativeai SDK) to
 analyze images and extract specific details (people, vehicles, weapons, evidence, etc.)
 into a validated JSON structure defined by Pydantic models.
 
@@ -64,7 +64,7 @@ class DocumentMeta(BaseModel):
         description="Height of the image in pixels."
     )
     analysis_model: str = Field(
-        "gemini-2.5-flash", 
+        "gemini-3.1-flash-lite", 
         description="The Gemini model used for the visual analysis."
     )
 
@@ -325,45 +325,70 @@ def clean_gemini_output(raw_text: str) -> str:
 
 
 def get_gemini_prompt() -> str:
-    """
-    Returns the highly detailed system prompt for the Gemini vision model.
-    Instructs the model on all required extractions. (Requirement 16)
-    """
     return (
-        "You are an expert crime scene investigator, forensic analyst, and digital evidence specialist. "
-        "Your task is to analyze the provided image in detail and extract structured evidence for a police database. "
-        "You must output ONLY a valid JSON block complying with the schema provided. "
-        "Ensure you detect and include the following items in your analysis:\n"
-        "- detect every person: detail their clothing, estimated age, gender, actions, and note if they are suspicious.\n"
-        "- detect every vehicle: details like make, model, color, license plate, and any suspicious features.\n"
-        "- detect every important object: anything relevant to a crime or incident scene.\n"
-        "- detect weapons: handguns, knives, blunt objects, improvised weapons, etc.\n"
-        "- detect blood: spots, splatters, pools, or biological stains.\n"
-        "- detect smoke: combustion evidence, gaseous clouds.\n"
-        "- detect fire: active flames, charred areas.\n"
-        "- detect broken glass: windows, windshields, glasses on the floor.\n"
-        "- detect damaged property: vandalism, forced entry, dents, fire damage.\n"
-        "- detect CCTV cameras: security systems, dashcams, potential recording devices.\n"
-        "- detect documents: letters, open files, identification cards, logs.\n"
-        "- detect electronic devices: cell phones, computers, surveillance monitors, storage units.\n"
-        "- detect readable text: signs, writing on walls, labels, clothing brand names.\n"
-        "- detect number plates: vehicles' registration numbers.\n"
-        "- detect suspicious activities: abnormal human actions, out-of-place objects, security breaches.\n"
-        "- detect evidence useful for police investigation: trace evidence, weapons, context markers.\n"
-        "- generate searchable keywords: 8-15 indexing keywords representing the scene.\n"
-        "- infer timeline: trace logical progression of events if multiple actions or steps are visually implied.\n"
-        "- estimate confidence: rate your visual analysis confidence from 0.0 (unreliable) to 1.0 (absolute certainty).\n\n"
-        "CRITICAL RULES:\n"
-        "1. Never hallucinate. If an element (like blood, weapons, or animals) is NOT visible, do NOT create dummy items. "
-        "Leave the corresponding array empty.\n"
-        "2. Do not explain the output. Do not wrap the JSON in Markdown decorators like ```json. Return ONLY valid JSON.\n"
-        "3. Follow the Pydantic schema structure exactly."
+        "You are a forensic image analyst. Analyze the image and extract structured evidence. "
+        "CRITICAL INSTRUCTION: You MUST return a JSON object that EXACTLY matches the keys and data types below. "
+        "DO NOT invent new keys. NEVER return arrays of strings when arrays of objects are requested. "
+        "If you do not have data for a field, return an empty array [] or empty string \"\".\n\n"
+        "EXACT SCHEMA REQUIRED:\n"
+        "{\n"
+        "  \"scene\": {\n"
+        "    \"summary\": \"string\",\n"
+        "    \"environment\": \"string\",\n"
+        "    \"location_type\": \"string\",\n"
+        "    \"indoor_outdoor\": \"string\",\n"
+        "    \"lighting\": \"string\",\n"
+        "    \"weather\": \"string\",\n"
+        "    \"time_of_day\": \"string\"\n"
+        "  },\n"
+        "  \"people\": [\n"
+        "    {\n"
+        "      \"description\": \"string\",\n"
+        "      \"activity\": \"string\",\n"
+        "      \"suspicious_behavior\": \"string\",\n"
+        "      \"location_in_scene\": \"string\"\n"
+        "    }\n"
+        "  ],\n"
+        "  \"vehicles\": [\n"
+        "    {\n"
+        "      \"type\": \"string\",\n"
+        "      \"color\": \"string\",\n"
+        "      \"make_model\": \"string\",\n"
+        "      \"license_plate\": \"string\",\n"
+        "      \"suspicious_features\": \"string\",\n"
+        "      \"location_in_scene\": \"string\"\n"
+        "    }\n"
+        "  ],\n"
+        "  \"text_detected\": [\n"
+        "    {\n"
+        "      \"text\": \"string\",\n"
+        "      \"source_type\": \"string\",\n"
+        "      \"confidence\": \"string\"\n"
+        "    }\n"
+        "  ],\n"
+        "  \"evidence\": [\n"
+        "    {\n"
+        "      \"type\": \"string\",\n"
+        "      \"description\": \"string\",\n"
+        "      \"location\": \"string\"\n"
+        "    }\n"
+        "  ],\n"
+        "  \"objects\": [],\n"
+        "  \"buildings\": [],\n"
+        "  \"animals\": [],\n"
+        "  \"weapons\": [],\n"
+        "  \"suspicious_observations\": [],\n"
+        "  \"possible_crime_indicators\": [],\n"
+        "  \"timeline\": [],\n"
+        "  \"search_keywords\": [],\n"
+        "  \"confidence_score\": 0.95\n"
+        "}"
     )
 
 
 def process_image(image_path: Union[str, Path]) -> Dict[str, Any]:
     """
-    Processes a single image file through Gemini 2.5 Flash Vision. (Requirement 10 & 1)
+    Processes a single image file through Gemini 3.5 Flash Vision. (Requirement 10 & 1)
     Loads the image, configures Gemini API, executes analysis, and validates JSON.
     
     Args:
@@ -419,10 +444,10 @@ def process_image(image_path: Union[str, Path]) -> Dict[str, Any]:
 
     # 3. Request analysis from Gemini (Requirement 1)
     try:
-        model = genai.GenerativeModel("gemini-2.5-flash")
+        model = genai.GenerativeModel("gemini-3.1-flash-lite")
         prompt = get_gemini_prompt()
         
-        logger.info(f"Sending image to Gemini 2.5 Flash Vision API...")
+        logger.info(f"Sending image to Gemini 3.5 Flash Vision API...")
         
         # Configure model parameters
         generation_config = {
@@ -460,10 +485,14 @@ def process_image(image_path: Union[str, Path]) -> Dict[str, Any]:
         }
         
     # 4. Automatically clean Gemini output (Requirement 17 & 18)
+    # 4. Automatically clean Gemini output (Requirement 17 & 18)
     cleaned_text = clean_gemini_output(raw_text)
     
     try:
-        parsed_json = json.loads(cleaned_text)
+        # Use JSONDecoder().raw_decode to perfectly parse the JSON and
+        # automatically ignore any trailing braces or text at the end!
+        text_to_parse = cleaned_text.strip()
+        parsed_json, _ = json.JSONDecoder().raw_decode(text_to_parse)
     except json.JSONDecodeError as e:
         # If JSON parsing fails, return a structured error object (Requirement 19)
         error_msg = f"JSON decoding failed: {str(e)}"
@@ -487,7 +516,7 @@ def process_image(image_path: Union[str, Path]) -> Dict[str, Any]:
         "source_file": image_path.name,
         "image_width": image_width,
         "image_height": image_height,
-        "analysis_model": "gemini-2.5-flash"
+        "analysis_model": "gemini-3.1-flash-lite"
     })
     
     # 6. Validate using Pydantic (Requirement 14 & 7)
@@ -647,7 +676,7 @@ def main() -> int:
         Exit code (0 for success, 1 for failure).
     """
     parser = argparse.ArgumentParser(
-        description="Extract structured Crime Investigation JSON data from crime scene and evidence images using Gemini 2.5 Vision."
+        description="Extract structured Crime Investigation JSON data from crime scene and evidence images using Gemini 3.5 Vision."
     )
     parser.add_argument(
         "input_path",
