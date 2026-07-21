@@ -16,7 +16,6 @@ python-dotenv
 fastapi
 sentence-transformers==3.0.1
 anthropic==0.34.2
-google-genai
 scikit-learn 
 google-generativeai
 openai-whisper
