@@ -21,11 +21,14 @@ export default function LegalCaseList({
   search = "",
   status = "",
   priority = "",
+  onSuggest,
 }: {
   initialCases?: CaseSummary[];
   search?: string;
   status?: string;
   priority?: string;
+  /** Called with a case_id when the user wants AI investigation suggestions for that case. */
+  onSuggest?: (caseId: string) => void;
 }) {
   const [cases, setCases] = useState<CaseSummary[]>(initialCases || []);
   const [loading, setLoading] = useState(true);
@@ -210,6 +213,16 @@ export default function LegalCaseList({
                       >
                         Legal Sections
                       </Link>
+
+                      {onSuggest && (
+                        <button
+                          type="button"
+                          onClick={() => onSuggest(caseItem.case_id)}
+                          className="rounded-lg bg-maroon-600 px-3 py-2 text-center text-sm font-medium whitespace-nowrap text-white hover:bg-maroon-700"
+                        >
+                          AI Suggest
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
