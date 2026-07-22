@@ -16,7 +16,7 @@ const menu = [
   },
   {
     title: "Cases Review",
-    href: "/cases",       // complaint details, investigation notes, evidence, timeline 
+    href: "/legal/cases",       // complaint details, investigation notes, evidence, timeline 
     icon: <FaClipboardList />,
   },
   {
