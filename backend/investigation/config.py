@@ -21,6 +21,26 @@ EMBEDDING_DIM = 1024
 # must be prefixed with "query: ".
 E5_QUERY_PREFIX = "query: "
 
+# --- Embedding inference (Hugging Face Inference API) ---
+# We no longer load the model locally (sentence-transformers + torch is
+# too heavy to deploy on this host). Instead we call HF's hosted
+# feature-extraction endpoint for the SAME model, so the vector space
+# is unchanged and no re-embedding of existing legal_sections/landmarks
+# rows is required.
+HF_API_URL = (
+    "https://router.huggingface.co/hf-inference/models/"
+    "intfloat/multilingual-e5-large/pipeline/feature-extraction"
+)
+HF_API_TOKEN = os.environ.get("HF_API_TOKEN")
+
+# Network tuning for the HF call. Serverless HF endpoints can take
+# 10-20s to "wake up" on first request after idling and return 503
+# while the model loads, so we retry a few times with backoff rather
+# than failing the officer's search outright.
+HF_API_TIMEOUT_SECONDS = 30
+HF_API_MAX_RETRIES = 4
+HF_API_RETRY_BACKOFF_SECONDS = 3  # multiplied by attempt number
+
 # --- LLM for synthesis (small, cheap, fast - no fine-tuning needed) ---
 # Using Google Gemini for now (GOOGLE_API_KEY). Swap-friendly: only
 # llm_synthesis.py needs to change if this moves to a different provider

@@ -20,7 +20,12 @@ A router module implementing FR2 (a, b, c):
   `backend/database/db.py` — no separate connection setup, same pool as
   FR1 and the rest of the backend.
 - **Embedding model matches existing data**: `intfloat/multilingual-e5-large`
-  (1024-dim), same as what's already stored.
+  (1024-dim), same as what's already stored. Query embeddings are computed
+  via the **Hugging Face Inference API** rather than loading the model
+  locally — `sentence-transformers` + `torch` + the ~2.2GB model weights
+  were too heavy to deploy on this host. Same model, same vector space,
+  so no re-embedding of existing `legal_sections`/`landmarks` rows was
+  needed for this change.
 - **Decoupled from FR1.** Reads whatever's already in `complaints`
   (`description`, `ai_summary`, `crime_type`, `category`, etc.) and prefers
   `ai_summary` once FR1 populates it.
@@ -64,8 +69,12 @@ Endpoints become available at:
 pip install -r investigation/requirements.txt
 # DATABASE_URL should already be in your existing .env, picked up by
 # backend/database/db.py's load_dotenv().
-# Add GOOGLE_API_KEY to the same .env for the LLM synthesis step
-# (get one at https://aistudio.google.com/apikey).
+# Add GROQ_API_KEY to the same .env for the LLM synthesis step.
+# Add HF_API_TOKEN to the same .env for query embeddings — this calls
+# the Hugging Face Inference API instead of loading the embedding model
+# locally. Get a token (Inference API permissions) at
+# https://huggingface.co/settings/tokens. No local model download or
+# GPU/large-RAM host required for this step anymore.
 
 # apply migration (or fold into your existing Alembic setup — see note below)
 psql $DATABASE_URL -f investigation/migrations/001_create_investigation_suggestions.sql

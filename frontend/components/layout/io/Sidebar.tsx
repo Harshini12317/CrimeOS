@@ -23,7 +23,7 @@ const menu = [
   },
   {
     title: "Legal Requests",
-    href: "/legal-request", // generate requests drafts, sent requests, upload response, AI respose analysis
+    href: "/investigation/legal-requests", // generate requests drafts, sent requests, upload response, AI respose analysis
     icon: <FaBalanceScaleRight />,
   },
   {
