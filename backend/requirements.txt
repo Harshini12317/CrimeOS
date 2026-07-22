@@ -23,4 +23,3 @@ pytesseract
 pdf2image
 langdetect
 groq
-docx
