@@ -47,7 +47,8 @@ export interface PersonEntry {
 
 export interface ComplaintData {
   complaintType: string;
-  category: string;
+  crimeCategory: string;
+  crimeSubcategory: string;
   priority: string;
   incidentDate: string;
   incidentTime: string;

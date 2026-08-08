@@ -9,6 +9,7 @@ from app.routes.legal_section_intelligence import router as legal_section_intell
 # Import your new ingestion routes
 from app.routes import audio, pdf, image, combo  # Added combo
 from app.routes import workflow
+from app.routes.complaint import router as complaints_router
 
 app = FastAPI(title="CrimeOS Backend")
 
@@ -34,3 +35,7 @@ app.include_router(audio.router, prefix="/api/v1/audio", tags=["Audio"])
 app.include_router(pdf.router, prefix="/api/v1/pdf", tags=["PDF"])
 app.include_router(image.router, prefix="/api/v1/image", tags=["Image"])
 app.include_router(combo.router, prefix="/api/v1/combo", tags=["Combo Master Agent"])
+
+
+#Complaint ingestion routes
+app.include_router(complaints_router)

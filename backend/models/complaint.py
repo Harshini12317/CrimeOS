@@ -1,30 +1,102 @@
-from sqlalchemy import Column
-from sqlalchemy import String
-from sqlalchemy import Text
-from sqlalchemy import DateTime
+import uuid
+
+from sqlalchemy import (
+    Column,
+    String,
+    Text,
+    Date,
+    Time,
+    DateTime,
+)
 from sqlalchemy.sql import func
 
 from database.db import Base
 
 
 class Complaint(Base):
-
     __tablename__ = "complaints"
 
-    complaint_id = Column(String, primary_key=True)
+    complaint_id = Column(
+        String(100),
+        primary_key=True,
+        nullable=False,
+        default=lambda: str(uuid.uuid4()),
+    )
 
-    complainant_name = Column(String)
+    complaint_number = Column(
+        String(30),
+        unique=True,
+        nullable=False,
+        index=True,
+    )
 
-    phone = Column(String)
+    complaint_type = Column(
+        String(50),
+        nullable=False,
+    )
 
-    email = Column(String)
+    crime_category = Column(
+        String(100),
+        nullable=False,
+    )
 
-    crime_type = Column(String)
+    crime_subcategory = Column(
+        String(100),
+        nullable=False,
+    )
 
-    location = Column(Text)
+    priority = Column(
+        String(20),
+        nullable=False,
+        default="Medium",
+    )
 
-    description = Column(Text)
+    incident_date = Column(
+        Date,
+        nullable=True,
+    )
 
-    status = Column(String, default="Pending")
+    incident_time = Column(
+        Time,
+        nullable=True,
+    )
 
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    location = Column(
+        Text,
+        nullable=True,
+    )
+
+    description = Column(
+        Text,
+        nullable=False,
+    )
+
+    ai_summary = Column(
+        Text,
+        nullable=True,
+    )
+
+    officer_notes = Column(
+        Text,
+        nullable=True,
+    )
+
+    status = Column(
+        String(30),
+        nullable=False,
+        default="Registered",
+        index=True,
+    )
+
+    created_at = Column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+    )
+
+    updated_at = Column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
