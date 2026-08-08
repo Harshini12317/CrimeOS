@@ -8,6 +8,7 @@ from investigation.cases import router as cases_router
 from app.routes.legal_section_intelligence import router as legal_section_intelligence_router
 # Import your new ingestion routes
 from app.routes import audio, pdf, image, combo  # Added combo
+from app.routes import workflow
 
 app = FastAPI(title="CrimeOS Backend")
 
@@ -18,6 +19,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.include_router(workflow.router)
 
 # Investigation and legal suggestion routes
 app.include_router(investigation_router)
