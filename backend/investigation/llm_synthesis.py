@@ -26,7 +26,9 @@ from investigation.config import (
     LLM_MAX_TOKENS_GUIDANCE,
 )
 
-client = Groq(api_key=os.environ["GROQ_API_KEY"])
+api_key = os.getenv("GROQ_API_KEY")
+
+client = Groq(api_key=api_key) if api_key else None
 
 # --- Mock mode: set MOCK_LLM=1 in your .env to bypass real Groq calls
 # and test the rest of the pipeline (DB join, retrieval, storage) while
