@@ -14,7 +14,7 @@ async function getRequests(): Promise<LegalRequest[]> {
       c.case_number, c.title as case_title, c.status as case_status,
       c.district, c.police_station, c.fir_no,
       cp.ai_summary, cp.description as complaint_description,
-      cp.crime_type, cp.complaint_type
+      cp.crime_category, cp.crime_subcategory
     from investigation_suggestions s
     left join cases c on c.case_id = s.case_id
     left join complaints cp on cp.complaint_id = s.complaint_id

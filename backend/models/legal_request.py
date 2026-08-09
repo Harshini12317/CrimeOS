@@ -1,10 +1,5 @@
-from sqlalchemy import (
-    Column,
-    Text,
-    String,
-    DateTime,
-    ForeignKey
-)
+from sqlalchemy import Column, Text, String, DateTime
+from sqlalchemy.dialects.postgresql import JSONB
 
 from database.db import Base
 
@@ -14,84 +9,101 @@ class LegalRequest(Base):
     __tablename__ = "legal_requests"
 
     # ======================================================
-    # PRIMARY KEY
+    # REQUEST
     # ======================================================
 
     request_id = Column(
         Text,
         primary_key=True,
-        nullable=False,
-        index=True
     )
-
-    # ======================================================
-    # RELATIONSHIPS
-    # ======================================================
 
     case_id = Column(
         Text,
-        ForeignKey("cases.case_id"),
         nullable=False,
-        index=True
     )
 
     complaint_id = Column(
         Text,
-        ForeignKey("complaints.complaint_id"),
         nullable=False,
-        index=True
     )
-
-    # ======================================================
-    # AGENCY
-    # ======================================================
 
     agency_type = Column(
         String,
-        nullable=False
+        nullable=False,
     )
 
     agency_name = Column(
         String,
-        nullable=False
+        nullable=False,
     )
 
     recipient_email = Column(
         String,
-        nullable=False
+        nullable=False,
     )
-
-    # ======================================================
-    # REQUEST
-    # ======================================================
 
     subject = Column(
         String,
-        nullable=False
+        nullable=False,
     )
 
     document_url = Column(
         Text,
-        nullable=True
+        nullable=True,
     )
 
     # ======================================================
-    # STATUS
+    # REQUEST STATUS
     # ======================================================
 
     status = Column(
         String,
-        nullable=True
+        nullable=True,
+        default="Draft",
     )
 
     sent_at = Column(
         DateTime,
-        nullable=True
+        nullable=True,
     )
 
     responded_at = Column(
         DateTime,
-        nullable=True
+        nullable=True,
+    )
+
+    # ======================================================
+    # RESPONSE
+    # ======================================================
+
+    response_received_at = Column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+
+    response_document_url = Column(
+        Text,
+        nullable=True,
+    )
+
+    response_file_name = Column(
+        String,
+        nullable=True,
+    )
+
+    response_file_type = Column(
+        String,
+        nullable=True,
+    )
+
+    response_summary = Column(
+        Text,
+        nullable=True,
+    )
+
+    response_data = Column(
+        JSONB,
+        nullable=True,
     )
 
     # ======================================================
@@ -100,10 +112,10 @@ class LegalRequest(Base):
 
     created_at = Column(
         DateTime,
-        nullable=True
+        nullable=True,
     )
 
     updated_at = Column(
         DateTime,
-        nullable=True
+        nullable=True,
     )

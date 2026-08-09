@@ -494,7 +494,7 @@ async def send_legal_request(
     # 4. PREVENT DUPLICATE SEND
     # ======================================================
 
-    if request.status == "SENT":
+    if request.status == "RESPONSE_PENDING":
 
         raise HTTPException(
             status_code=400,
