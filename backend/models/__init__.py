@@ -6,3 +6,8 @@ from .investigation import InvestigationSuggestion
 from .landmarks import Landmark
 from .legal_section_mappings import LegalSectionMapping
 from .legal_sections import LegalSection
+
+from .complainant import Complainant
+from .victim import Victim
+from .suspect import Suspect
+from .evidence import Evidence

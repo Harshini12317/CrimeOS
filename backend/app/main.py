@@ -10,6 +10,20 @@ from app.routes.legal_section_intelligence import router as legal_section_intell
 from app.routes import audio, pdf, image, combo  # Added combo
 from app.routes import workflow
 from app.routes.complaint import router as complaints_router
+from fastapi import FastAPI
+
+from app.routes.complainants import router as complainants_router
+from app.routes.victims import router as victims_router
+from app.routes.suspects import router as suspects_router
+from app.routes.evidences import router as evidences_router
+
+
+app = FastAPI(
+    title="CrimeOS API"
+)
+
+
+
 
 app = FastAPI(title="CrimeOS Backend")
 
@@ -39,3 +53,8 @@ app.include_router(combo.router, prefix="/api/v1/combo", tags=["Combo Master Age
 
 #Complaint ingestion routes
 app.include_router(complaints_router)
+
+app.include_router(complainants_router)
+app.include_router(victims_router)
+app.include_router(suspects_router)
+app.include_router(evidences_router)

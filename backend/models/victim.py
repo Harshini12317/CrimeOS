@@ -1,89 +1,77 @@
-from sqlalchemy import (
-    Column,
-    String,
-    Text,
-    DateTime
-)
-
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy import Column, String, Text, DateTime, ForeignKey
 from sqlalchemy.sql import func
 
 from database.db import Base
 
 
-class Evidence(Base):
-    __tablename__ = "evidences"
+class Victim(Base):
+    __tablename__ = "victims"
 
-    evidence_id = Column(
+    victim_id = Column(
         String,
         primary_key=True,
         index=True
     )
 
-    case_id = Column(
-        String,
-        nullable=True,
-        index=True
-    )
-
-    evidence_type = Column(
-        String,
-        nullable=True
-    )
-
-    file_path = Column(
-        String,
-        nullable=True
-    )
-
     complaint_id = Column(
         String,
-        nullable=True,
+        ForeignKey(
+            "complaints.complaint_id",
+            ondelete="CASCADE"
+        ),
+        nullable=False,
         index=True
     )
 
-    file_name = Column(
+    name = Column(
+        String,
+        nullable=False
+    )
+
+    contact = Column(
         String,
         nullable=True
     )
 
-    file_type = Column(
+    relationship = Column(
         String,
         nullable=True
     )
 
-    cloudinary_url = Column(
+    statement = Column(
         Text,
         nullable=True
     )
 
-    cloudinary_public_id = Column(
+    type = Column(
+        String,
+        nullable=True
+    )
+
+    description = Column(
         Text,
         nullable=True
     )
 
-    extracted_text = Column(
+    address = Column(
         Text,
         nullable=True
     )
 
-    summary = Column(
+    photo_url = Column(
         Text,
-        nullable=True
-    )
-
-    extraction_data = Column(
-        JSONB,
         nullable=True
     )
 
     created_at = Column(
         DateTime(timezone=True),
+        nullable=False,
         server_default=func.now()
     )
 
     updated_at = Column(
         DateTime(timezone=True),
+        nullable=False,
         server_default=func.now(),
         onupdate=func.now()
     )

@@ -7,6 +7,11 @@ import {
   RotateCcw,
   AlertCircle,
 } from "lucide-react";
+import {
+  createComplainant,
+  createVictim,
+  createSuspect,
+} from "./api";
 
 import { useLanguage } from "@/app/providers/LanguageProvider";
 
@@ -646,169 +651,272 @@ export default function ComplaintWizard() {
   // ==========================================================
 
   async function handleSubmit() {
+  setNotification(null);
 
-    setNotification(null);
+  try {
+    // ======================================================
+    // 1. FRONTEND VALIDATION
+    // ======================================================
 
-
-    try {
-
-      // ------------------------------------------------------
-      // Frontend validation
-      // ------------------------------------------------------
-
-      if (!form.complaintType) {
-        throw new Error(
-          "Please select a complaint type."
-        );
-      }
-
-
-      if (!form.crimeCategory) {
-        throw new Error(
-          "Please select a crime category."
-        );
-      }
-
-
-      if (!form.crimeSubcategory) {
-        throw new Error(
-          "Please select a crime subcategory."
-        );
-      }
-
-
-      if (!form.description.trim()) {
-        throw new Error(
-          "Please enter the incident description."
-        );
-      }
-
-
-      // ======================================================
-      // PAYLOAD MATCHING FASTAPI ComplaintCreate
-      // ======================================================
-
-      const payload = {
-
-        complaint_type:
-          form.complaintType,
-
-        crime_category:
-          form.crimeCategory,
-
-        crime_subcategory:
-          form.crimeSubcategory,
-
-        priority:
-          form.priority,
-
-        incident_date:
-          form.incidentDate ||
-          null,
-
-        incident_time:
-          form.incidentTime ||
-          null,
-
-        location:
-          form.location.trim() ||
-          null,
-
-        description:
-          form.description.trim(),
-
-        ai_summary:
-          form.aiSummary.trim() ||
-          null,
-
-        officer_notes:
-          form.officerNotes.trim() ||
-          null,
-      };
-
-
-      console.log(
-        "Submitting complaint:",
-        payload
+    if (!form.complaintType) {
+      throw new Error(
+        "Please select a complaint type."
       );
-
-
-      // ======================================================
-      // POST TO NEW BACKEND
-      // ======================================================
-
-      const response =
-        await axios.post(
-          `${API_BASE}/api/complaints`,
-          payload
-        );
-
-
-      console.log(
-        "Complaint registered:",
-        response.data
-      );
-
-
-      // ======================================================
-      // STORE COMPLAINT NUMBER
-      // ======================================================
-
-      setRegisteredComplaintNumber(
-        response.data.complaint_number
-      );
-
-
-      setNotification({
-        type: "success",
-
-        message:
-          "Complaint Registered Successfully",
-
-        submessage:
-          `Complaint Number: ${response.data.complaint_number}`,
-      });
-
-
-      setSubmitted(true);
-
-    } catch (error: any) {
-
-      console.error(
-        "Complaint submission failed:",
-        error
-      );
-
-
-      let message =
-        "Could not save the complaint.";
-
-
-      if (
-        error?.response?.data?.detail
-      ) {
-        message =
-          error.response.data.detail;
-
-      } else if (
-        error?.message
-      ) {
-        message =
-          error.message;
-      }
-
-
-      setNotification({
-        type: "error",
-
-        message:
-          "Submission Failed",
-
-        submessage:
-          message,
-      });
     }
+
+    if (!form.crimeCategory) {
+      throw new Error(
+        "Please select a crime category."
+      );
+    }
+
+    if (!form.crimeSubcategory) {
+      throw new Error(
+        "Please select a crime subcategory."
+      );
+    }
+
+    if (!form.description.trim()) {
+      throw new Error(
+        "Please enter the incident description."
+      );
+    }
+
+
+    // ======================================================
+    // 2. CREATE COMPLAINT
+    // ======================================================
+
+    const complaintPayload = {
+      complaint_type:
+        form.complaintType,
+
+      crime_category:
+        form.crimeCategory,
+
+      crime_subcategory:
+        form.crimeSubcategory,
+
+      priority:
+        form.priority,
+
+      incident_date:
+        form.incidentDate || null,
+
+      incident_time:
+        form.incidentTime || null,
+
+      location:
+        form.location.trim() || null,
+
+      description:
+        form.description.trim(),
+
+      ai_summary:
+        form.aiSummary.trim() || null,
+
+      officer_notes:
+        form.officerNotes.trim() || null,
+    };
+
+
+    console.log(
+      "Creating complaint:",
+      complaintPayload
+    );
+
+
+    const complaintResponse =
+      await axios.post(
+        `${API_BASE}/api/complaints`,
+        complaintPayload
+      );
+
+
+    console.log(
+      "Complaint created:",
+      complaintResponse.data
+    );
+
+
+    // ======================================================
+    // 3. GET COMPLAINT ID
+    // ======================================================
+
+    const complaintId =
+      complaintResponse.data.complaint_id;
+
+    const complaintNumber =
+      complaintResponse.data.complaint_number;
+
+
+    if (!complaintId) {
+      throw new Error(
+        "Complaint was created but complaint_id was not returned by the backend."
+      );
+    }
+
+
+    console.log(
+      "Complaint ID:",
+      complaintId
+    );
+
+
+    // ======================================================
+    // 4. SAVE VICTIMS
+    // ======================================================
+
+    const validVictims =
+      form.victims.filter(
+        (victim) =>
+          victim.name &&
+          victim.name.trim()
+      );
+
+
+    for (
+      const victim of validVictims
+    ) {
+
+      await createVictim(
+        complaintId,
+        victim
+      );
+
+    }
+
+
+    console.log(
+      `Saved ${validVictims.length} victim(s)`
+    );
+
+
+    // ======================================================
+    // 5. SAVE SUSPECTS
+    // ======================================================
+
+    const validSuspects =
+      form.suspects.filter(
+        (suspect) =>
+          suspect.name &&
+          suspect.name.trim()
+      );
+
+
+    for (
+      const suspect of validSuspects
+    ) {
+
+      await createSuspect(
+        complaintId,
+        suspect
+      );
+
+    }
+
+
+    console.log(
+      `Saved ${validSuspects.length} suspect(s)`
+    );
+
+
+    // ======================================================
+    // 6. SAVE COMPLAINANTS
+    // ======================================================
+
+    const validComplainants =
+      form.complainants.filter(
+        (complainant) =>
+          complainant.name &&
+          complainant.name.trim()
+      );
+
+
+    for (
+      const complainant of validComplainants
+    ) {
+
+      await createComplainant(
+        complaintId,
+        complainant
+      );
+
+    }
+
+
+    console.log(
+      `Saved ${validComplainants.length} complainant(s)`
+    );
+
+
+    // ======================================================
+    // 7. STORE COMPLAINT NUMBER
+    // ======================================================
+
+    setRegisteredComplaintNumber(
+      complaintNumber
+    );
+
+
+    // ======================================================
+    // 8. SUCCESS
+    // ======================================================
+
+    setNotification({
+      type: "success",
+
+      message:
+        "Complaint Registered Successfully",
+
+      submessage:
+        `Complaint Number: ${complaintNumber}`,
+    });
+
+
+    setSubmitted(true);
+
+
+  } catch (error: any) {
+
+    console.error(
+      "Complaint submission failed:",
+      error
+    );
+
+
+    let message =
+      "Could not save the complaint.";
+
+
+    if (
+      error?.response?.data?.detail
+    ) {
+
+      message =
+        error.response.data.detail;
+
+    } else if (
+      error?.message
+    ) {
+
+      message =
+        error.message;
+
+    }
+
+
+    setNotification({
+      type: "error",
+
+      message:
+        "Submission Failed",
+
+      submessage:
+        message,
+    });
   }
+}
 
 
   // ==========================================================

@@ -24,3 +24,4 @@ pdf2image
 langdetect
 groq
 python-docx
+cloudinary
