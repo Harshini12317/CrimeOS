@@ -25,3 +25,5 @@ langdetect
 groq
 python-docx
 cloudinary
+reportlab
+aiosmtplib

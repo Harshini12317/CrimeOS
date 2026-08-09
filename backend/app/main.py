@@ -8,7 +8,7 @@ from investigation.cases import router as cases_router
 from app.routes.legal_section_intelligence import router as legal_section_intelligence_router
 # Import your new ingestion routes
 from app.routes import audio, pdf, image, combo  # Added combo
-from app.routes import workflow
+
 from app.routes.complaint import router as complaints_router
 from fastapi import FastAPI
 
@@ -16,6 +16,14 @@ from app.routes.complainants import router as complainants_router
 from app.routes.victims import router as victims_router
 from app.routes.suspects import router as suspects_router
 from app.routes.evidences import router as evidences_router
+
+from app.routes.legal_requests import router as legal_requests_router
+from app.routes.email_test import router as email_test_router
+
+
+from dotenv import load_dotenv
+load_dotenv()
+from app.config import cloudinary
 
 
 app = FastAPI(
@@ -34,7 +42,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-app.include_router(workflow.router)
+app.include_router(
+    email_test_router
+)
 
 # Investigation and legal suggestion routes
 app.include_router(investigation_router)
@@ -58,3 +68,7 @@ app.include_router(complainants_router)
 app.include_router(victims_router)
 app.include_router(suspects_router)
 app.include_router(evidences_router)
+
+#Email automation
+
+app.include_router(legal_requests_router)

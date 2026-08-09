@@ -1,11 +1,10 @@
-from datetime import datetime
-import uuid
-
-from sqlalchemy import Column
-from sqlalchemy import String
-from sqlalchemy import DateTime
-from sqlalchemy import LargeBinary
-from sqlalchemy import ForeignKey
+from sqlalchemy import (
+    Column,
+    Text,
+    String,
+    DateTime,
+    ForeignKey
+)
 
 from database.db import Base
 
@@ -14,23 +13,38 @@ class LegalRequest(Base):
 
     __tablename__ = "legal_requests"
 
+    # ======================================================
+    # PRIMARY KEY
+    # ======================================================
+
     request_id = Column(
-        String,
+        Text,
         primary_key=True,
-        default=lambda: str(uuid.uuid4())
+        nullable=False,
+        index=True
     )
 
+    # ======================================================
+    # RELATIONSHIPS
+    # ======================================================
+
     case_id = Column(
-        String,
+        Text,
         ForeignKey("cases.case_id"),
-        nullable=False
+        nullable=False,
+        index=True
     )
 
     complaint_id = Column(
-        String,
+        Text,
         ForeignKey("complaints.complaint_id"),
-        nullable=False
+        nullable=False,
+        index=True
     )
+
+    # ======================================================
+    # AGENCY
+    # ======================================================
 
     agency_type = Column(
         String,
@@ -47,16 +61,27 @@ class LegalRequest(Base):
         nullable=False
     )
 
+    # ======================================================
+    # REQUEST
+    # ======================================================
+
     subject = Column(
         String,
         nullable=False
     )
 
-    
+    document_url = Column(
+        Text,
+        nullable=True
+    )
+
+    # ======================================================
+    # STATUS
+    # ======================================================
 
     status = Column(
         String,
-        default="Draft"
+        nullable=True
     )
 
     sent_at = Column(
@@ -69,13 +94,16 @@ class LegalRequest(Base):
         nullable=True
     )
 
+    # ======================================================
+    # TIMESTAMPS
+    # ======================================================
+
     created_at = Column(
         DateTime,
-        default=datetime.utcnow
+        nullable=True
     )
 
     updated_at = Column(
         DateTime,
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow
+        nullable=True
     )
