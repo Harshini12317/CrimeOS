@@ -1,6 +1,7 @@
 "use server";
 
 import { sql } from "@/lib/db";
+import type { ActivityEvent } from "@/lib/mockData";
 
 // Interface for live dashboard query results
 export interface LiveDashboardData {
@@ -13,17 +14,11 @@ export interface LiveDashboardData {
   };
   recentCases: Array<{
     caseId: string;
-    crimeType: string;
+    crime_category: string;
     status: string;
     lastUpdated: string;
   }>;
-  activities: Array<{
-    id: string;
-    type: string;
-    timestamp: string;
-    caseId: string;
-    details: string;
-  }>;
+  activities: ActivityEvent[];
 }
 
 // Helper to format ISO timestamps
@@ -120,32 +115,38 @@ export async function getLiveDashboardData(userId?: number | string): Promise<Li
     // Format cases
     const recentCases = casesQuery.map((c: any) => ({
       caseId: c.case_id,
-      crimeType: c.crime_type ?? "Cyber Incident",
+      crime_category: c.crime_category ?? "Cyber Incident",
       status: c.status ?? "Investigation Active",
       lastUpdated: c.created_at ? new Date(c.created_at).toISOString().substring(0, 10) : "2026-07-28"
     }));
 
     // Format activities
-    const activities = activitiesQuery.map((act: any, idx: number) => {
-      let type = "AI Investigation Path Generated";
-      let details = `AI generated investigation blueprint for Case: ${act.case_id}`;
-      
-      if (act.officer_feedback === "accepted") {
-        type = "Legal Request Sent";
-        details = "Legal Advisor approved the suggestion draft.";
-      } else if (act.officer_feedback === "rejected") {
-        type = "Case Summary Updated";
-        details = "Officer reviewed legal suggestions and updated notes.";
-      }
+    const activities: ActivityEvent[] = activitiesQuery.map(
+  (act: any, idx: number) => {
+    let type: ActivityEvent["type"] =
+      "AI Investigation Path Generated";
 
-      return {
-        id: act.id ?? `act-live-${idx}`,
-        type,
-        timestamp: formatTimestamp(act.generated_at),
-        caseId: act.case_id,
-        details
-      };
-    });
+    let details =
+      `AI generated investigation blueprint for Case: ${act.case_id}`;
+
+    if (act.officer_feedback === "accepted") {
+      type = "Legal Request Sent";
+      details = "Legal Advisor approved the suggestion draft.";
+    } else if (act.officer_feedback === "rejected") {
+      type = "Case Summary Updated";
+      details =
+        "Officer reviewed legal suggestions and updated notes.";
+    }
+
+    return {
+      id: String(act.id ?? `act-live-${idx}`),
+      type,
+      timestamp: formatTimestamp(act.generated_at),
+      caseId: String(act.case_id),
+      details,
+    };
+  }
+);
 
     // If no cases exist in DB, fallback to mock data
     if (recentCases.length === 0) {
@@ -179,7 +180,7 @@ export async function getLiveCaseSummary(caseId: string): Promise<any | null> {
         co.complainant_name,
         co.phone,
         co.email,
-        co.crime_type,
+        co.crime_category,
         co.location,
         co.description,
         co.created_at
@@ -311,7 +312,7 @@ export async function getLiveCaseSummary(caseId: string): Promise<any | null> {
         firNo: c.case_id,
         officerName: 'SI Vikram Rathore',
         policeStation: 'Sector 4 Cyber Cell',
-        crimeType: c.crime_type ?? 'Cyber Offence',
+        crime_category: c.crime_category ?? 'Cyber Offence',
         priority: (c.priority === 'High' || c.priority === 'Medium' || c.priority === 'Low') ? c.priority : 'High',
         status: c.status ?? 'Investigation Active',
         dateRegistered: c.created_at ? new Date(c.created_at).toISOString().substring(0, 10) : '2026-07-28'

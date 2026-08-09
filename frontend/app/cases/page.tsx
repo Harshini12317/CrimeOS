@@ -73,11 +73,11 @@ export default function UnifiedCasesPage() {
   const filteredCases = cases.filter((c) => {
     const caseNum = c.case_number || c.fir_no || c.case_id || "";
     const complainant = c.complainant_name || c.complainant || "";
-    const crimeType = c.crime_type || c.type || "";
+    const crime_category = c.crime_category || c.type || "";
     return (
       caseNum.toLowerCase().includes(search.toLowerCase()) ||
       complainant.toLowerCase().includes(search.toLowerCase()) ||
-      crimeType.toLowerCase().includes(search.toLowerCase())
+      crime_category.toLowerCase().includes(search.toLowerCase())
     );
   });
 

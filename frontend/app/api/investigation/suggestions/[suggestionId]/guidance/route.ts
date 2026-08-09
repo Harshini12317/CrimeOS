@@ -4,7 +4,7 @@ const BACKEND_ROOT = (process.env.BACKEND_API_URL ?? "http://localhost:8000/api"
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { suggestionId: string } }
+  { params }: { params: Promise<{ suggestionId: string }> }
 ) {
   const { suggestionId } = await params;
   const token = request.cookies.get("crimeos_token")?.value;

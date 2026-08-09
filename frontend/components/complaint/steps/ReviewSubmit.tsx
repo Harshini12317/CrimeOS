@@ -24,7 +24,7 @@ export default function ReviewSubmission({ form }: Props) {
         </div>
         <div>
           <p className="text-xs font-medium uppercase text-ink-600">Category</p>
-          <p className="mt-1 font-semibold text-ink-900">{form.category || "Not provided"}</p>
+          <p className="mt-1 font-semibold text-ink-900">{form.crimeCategory || "Not provided"}</p>
         </div>
         <div>
           <p className="text-xs font-medium uppercase text-ink-600">Priority</p>

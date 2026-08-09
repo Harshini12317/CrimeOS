@@ -146,7 +146,7 @@ function CaseSummaryContent() {
           >
             {caseIds.map((id) => (
               <option key={id} value={id}>
-                {id} {MOCK_CASE_SUMMARIES[id] ? `(${MOCK_CASE_SUMMARIES[id].info.crimeType})` : ""}
+                {id} {MOCK_CASE_SUMMARIES[id] ? `(${MOCK_CASE_SUMMARIES[id].info.crime_category})` : ""}
               </option>
             ))}
           </select>
@@ -188,7 +188,7 @@ function CaseSummaryContent() {
             { label: "FIR Number", value: report.info.firNo, icon: <Shield className="h-4 w-4 text-gold-600 print:hidden" />, mono: true },
             { label: "Assigned Officer", value: report.info.officerName, icon: <User className="h-4 w-4 text-gold-600 print:hidden" /> },
             { label: "Police Station", value: report.info.policeStation, icon: <MapPin className="h-4 w-4 text-gold-600 print:hidden" /> },
-            { label: "Crime Type", value: report.info.crimeType, icon: <Activity className="h-4 w-4 text-gold-600 print:hidden" /> },
+            { label: "Crime Type", value: report.info.crime_category, icon: <Activity className="h-4 w-4 text-gold-600 print:hidden" /> },
             { label: "Priority Level", value: report.info.priority, icon: <AlertCircle className="h-4 w-4 text-gold-600 print:hidden" />, highlight: true },
             { label: "Current Status", value: report.info.status, icon: <TrendingUp className="h-4 w-4 text-gold-600 print:hidden" /> },
             { label: "Date Registered", value: report.info.dateRegistered, icon: <Calendar className="h-4 w-4 text-gold-600 print:hidden" />, mono: true }

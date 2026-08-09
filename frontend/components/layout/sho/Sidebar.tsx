@@ -20,8 +20,13 @@ const menu = [
     icon: <FaHome />,
   },
   {
+    title: "Register Complaints",
+    href: "/complaints/register",    //complaint registration
+    icon: <FaHome />,
+  },
+  {
     title: "Complaints",
-    href: "/complaint",        // register complaint, view complaints, AI extracted details, complaint status
+    href: "/complaints",        // List of complaints
     icon: <FaClipboardList />,
   },
   {

@@ -195,7 +195,7 @@ export default function IODashboard() {
                           {c.caseId}
                         </Link>
                       </td>
-                      <td className="py-3 text-xs font-medium">{c.crimeType}</td>
+                      <td className="py-3 text-xs font-medium">{c.crime_category}</td>
                       <td className="py-3">
                         <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold border ${
                           c.status === "Investigation Active"

@@ -3,7 +3,7 @@ export interface CaseInfo {
   firNo: string;
   officerName: string;
   policeStation: string;
-  crimeType: string;
+  crime_category: string;
   priority: 'High' | 'Medium' | 'Low';
   status: string;
   dateRegistered: string;
@@ -206,19 +206,19 @@ export const MOCK_PENDING_ACTIONS: PendingAction[] = [
 export const MOCK_CASES_TABLE = [
   {
     caseId: 'FIR-2026-041',
-    crimeType: 'UPI / Net-banking Fraud',
+    crime_category: 'UPI / Net-banking Fraud',
     status: 'Investigation Active',
     lastUpdated: '2026-07-28'
   },
   {
     caseId: 'FIR-2026-042',
-    crimeType: 'Conventional - Theft',
+    crime_category: 'Conventional - Theft',
     status: 'Pending Approvals',
     lastUpdated: '2026-07-26'
   },
   {
     caseId: 'FIR-2026-039',
-    crimeType: 'Phishing / Fake Links',
+    crime_category: 'Phishing / Fake Links',
     status: 'Awaiting Service Provider',
     lastUpdated: '2026-07-10'
   }
@@ -231,7 +231,7 @@ export const MOCK_CASE_SUMMARIES: Record<string, CaseSummaryReport> = {
       firNo: 'FIR-2026-041',
       officerName: 'SI Vikram Rathore',
       policeStation: 'Sector 4 Cyber Cell',
-      crimeType: 'UPI / Net-banking Fraud',
+      crime_category: 'UPI / Net-banking Fraud',
       priority: 'High',
       status: 'Investigation Active',
       dateRegistered: '2026-06-14'
@@ -310,7 +310,7 @@ export const MOCK_CASE_SUMMARIES: Record<string, CaseSummaryReport> = {
       firNo: 'FIR-2026-042',
       officerName: 'SI Vikram Rathore',
       policeStation: 'Sector 4 Cyber Cell',
-      crimeType: 'Conventional - Theft',
+      crime_category: 'Conventional - Theft',
       priority: 'Medium',
       status: 'Pending Approvals',
       dateRegistered: '2026-06-13'
@@ -378,7 +378,7 @@ export const MOCK_CASE_SUMMARIES: Record<string, CaseSummaryReport> = {
       firNo: 'FIR-2026-039',
       officerName: 'SI Vikram Rathore',
       policeStation: 'Sector 4 Cyber Cell',
-      crimeType: 'Phishing / Fake Links',
+      crime_category: 'Phishing / Fake Links',
       priority: 'High',
       status: 'Awaiting Service Provider',
       dateRegistered: '2026-06-10'
