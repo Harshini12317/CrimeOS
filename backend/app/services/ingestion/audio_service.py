@@ -1,11 +1,11 @@
 import os
 import json
-import whisper
 import ssl
 from pathlib import Path
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
+from groq import Groq
 
 # Load environment variables (API Keys) securely
 BACKEND_ROOT = Path(__file__).resolve().parents[3]
@@ -42,14 +42,20 @@ Rules:
 
 def transcribe_audio(file_path: str) -> dict:
     try:
-        model = whisper.load_model("base")
-        result = model.transcribe(file_path)
+        client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
+        
+        with open(file_path, "rb") as file:
+            transcription = client.audio.transcriptions.create(
+              file=(os.path.basename(file_path), file.read()),
+              model="whisper-large-v3",
+            )
+            
         return {
-            "text": result.get("text", ""),
-            "language": result.get("language", "unknown")
+            "text": transcription.text,
+            "language": "auto-detected"
         }
     except Exception as e:
-        raise RuntimeError(f"Error during audio transcription: {str(e)}")
+        raise RuntimeError(f"Error during Groq audio transcription: {str(e)}")
 
 def extract_structured_json(text: str) -> dict:
     api_key = os.environ.get("GEMINI_API_KEY")

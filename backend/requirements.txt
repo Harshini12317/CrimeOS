@@ -17,7 +17,6 @@ fastapi
 anthropic==0.34.2
 scikit-learn 
 google-generativeai
-openai-whisper
 pdfplumber
 pytesseract
 pdf2image
@@ -27,3 +26,8 @@ python-docx
 cloudinary
 reportlab
 aiosmtplib
+python-jose[cryptography]
+passlib
+bcrypt
+google-genai
+email-validator
