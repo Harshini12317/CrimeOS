@@ -13,7 +13,7 @@ The diagram below outlines the full lifecycle of a complaint inside CrimeOS: fro
 ```mermaid
 graph TB
     %% Frontend Client Layer
-    subgraph Frontend [Frontend Portal (React / Next.js on Port 3000)]
+    subgraph Frontend ["Frontend Portal (React / Next.js on Port 3000)"]
         UI[CrimeOS Core Dashboard]
         UploadUI[Upload & OCR Dashboard]
         SearchUI[Legal Search Console]
@@ -24,11 +24,11 @@ graph TB
     end
 
     %% FastAPI Gateway Layer
-    subgraph Backend [FastAPI Backend Service (Port 8000)]
+    subgraph Backend ["FastAPI Backend Service (Port 8000)"]
         Router[FastAPI Route Handler & CORS Middlewares]
         
         %% Ingestion Pipeline
-        subgraph IngestionEngine [Evidence Ingestion Pipeline]
+        subgraph IngestionEngine ["Evidence Ingestion Pipeline"]
             Whisper[Whisper Audio Transcriber]
             OCR[Tesseract OCR & PDFPlumber]
             GeminiExtract[Gemini 3.1 Flash-Lite Extraction]
@@ -36,7 +36,7 @@ graph TB
         end
         
         %% Intelligence Pipeline
-        subgraph LegalIntelligence [AI Legal Intelligence Engine]
+        subgraph LegalIntelligence ["AI Legal Intelligence Engine"]
             HF_Embed[Hugging Face E5 Embeddings]
             pgvector[pgvector Cosine Search]
             Crosswalk[Old-New Act Crosswalk Mapping]
@@ -44,14 +44,14 @@ graph TB
         end
         
         %% Output Generators
-        subgraph DocGen [Document Generation & Delivery]
+        subgraph DocGen ["Document Generation & Delivery"]
             WordGen[python-docx FIR Compiler]
             PDFGen[ReportLab PDF Engine]
         end
     end
 
     %% Data Infrastructure Layer
-    subgraph Infrastructure [Data & Cloud Infrastructure]
+    subgraph Infrastructure ["Data & Cloud Infrastructure"]
         DB[(Neon Serverless PostgreSQL)]
         Cloudinary[Cloudinary CDN]
         SMTP[SMTP Email Server]
@@ -89,7 +89,7 @@ graph TB
     PDFGen -->|Notice PDF File| Cloudinary
     Cloudinary -->|Save CDN Link| DB
     Cloudinary -->|Trigger Dispatch| SMTP
-    SMTP -->|Send SMTP Email| Recipient[Recipient Agency / Recipient]
+    SMTP -->|Send SMTP Email| Recipient["Recipient Agency"]
     WordGen -->|.docx file download| DraftUI
 ```
 
