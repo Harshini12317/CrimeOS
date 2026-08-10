@@ -16,6 +16,7 @@ from app.routes.complainants import router as complainants_router
 from app.routes.victims import router as victims_router
 from app.routes.suspects import router as suspects_router
 from app.routes.evidences import router as evidences_router
+from app.routes import case
 
 from app.routes.legal_requests import router as legal_requests_router
 from app.routes.email_test import router as email_test_router
@@ -42,9 +43,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-app.include_router(
-    email_test_router
-)
+
+app.include_router(case.router)
+app.include_router(email_test_router)
 
 # Investigation and legal suggestion routes
 app.include_router(investigation_router)
