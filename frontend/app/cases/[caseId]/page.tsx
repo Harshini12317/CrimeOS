@@ -1,390 +1,1062 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   ArrowLeft,
-  Loader2,
-  ShieldAlert,
-  UserPlus,
   FileText,
+  Shield,
   User,
-  Calendar,
+  MapPin,
+  Loader2,
   AlertCircle,
-  Sparkles,
-  ScrollText,
+  Play,
+  Calendar,
+  Building2,
 } from "lucide-react";
 
-import { useAuth } from "../../providers/AuthProvider";
 import IOSidebar from "../../../components/layout/io/Sidebar";
-import SHOSidebar from "../../../components/layout/sho/Sidebar";
 import DashboardLayout from "../../dashboard/layout";
 
-const MOCK_CASES: Record<string, any> = {
-  "FIR-2026-041": {
-    case_number: "FIR-2026-041",
-    fir_date: "2026-06-14",
-    complainant_name: "Ananya Patel",
-    complainant_phone: "+91 98XXXXXX21",
-    complainant_address: "Vastrapur, Ahmedabad",
-    category: "Cyber Crime",
-    crime_type: "UPI / Net-banking Fraud",
-    status: "Investigation Active",
-    priority: "High",
-    assigned_officer: "SI Vikram Rathore",
-    description:
-      "Complainant reports unauthorized UPI transactions totaling ₹85,000 from her linked bank account. Suspects victim's device may have been compromised via a phishing link.",
-    sections_applied: ["IPC 420", "IT Act 66C", "IT Act 66D"],
-    ai_suggestions: [
-      "Request transaction logs from the UPI service provider (NPCI) for the last 30 days.",
-      "Check for SIM-swap activity linked to the complainant's registered mobile number.",
-      "Cross-reference beneficiary account with existing fraud case database.",
-    ],
-    legal_requests: [
-      { type: "Bank Account Freeze Request", status: "Sent", date: "2026-06-15" },
-      { type: "CDR Request - Complainant", status: "Pending", date: "2026-06-16" },
-    ],
-    timeline: [
-      { date: "2026-06-14", event: "FIR Registered" },
-      { date: "2026-06-14", event: "Case assigned to SI Vikram Rathore" },
-      { date: "2026-06-15", event: "Bank account freeze request sent" },
-    ],
-  },
-  "FIR-2026-042": {
-    case_number: "FIR-2026-042",
-    fir_date: "2026-06-13",
-    complainant_name: "Rahul Sharma",
-    complainant_phone: "+91 97XXXXXX54",
-    complainant_address: "Navrangpura, Ahmedabad",
-    category: "Conventional",
-    crime_type: "Theft",
-    status: "Pending Approvals",
-    priority: "Medium",
-    assigned_officer: "SI Amit Kumar",
-    description:
-      "Complainant reports theft of a two-wheeler from outside his residence overnight.",
-    sections_applied: ["IPC 379"],
-    ai_suggestions: [
-      "Pull CCTV footage from nearby residential society cameras.",
-      "Check vehicle registration against stolen-vehicle database.",
-    ],
-    legal_requests: [
-      { type: "CCTV Footage Request", status: "Pending", date: "2026-06-13" },
-    ],
-    timeline: [
-      { date: "2026-06-13", event: "FIR Registered" },
-      { date: "2026-06-13", event: "Case assigned to SI Amit Kumar" },
-    ],
-  },
-  "FIR-2026-039": {
-    case_number: "FIR-2026-039",
-    fir_date: "2026-06-10",
-    complainant_name: "Vikram Singh",
-    complainant_phone: "+91 99XXXXXX02",
-    complainant_address: "Bodakdev, Ahmedabad",
-    category: "Cyber Crime",
-    crime_type: "Phishing / Fake Links",
-    status: "Awaiting Service Provider",
-    priority: "High",
-    assigned_officer: "Unassigned",
-    description:
-      "Complainant received a fraudulent link impersonating a courier service and entered personal banking details, resulting in unauthorized withdrawal.",
-    sections_applied: ["IPC 420", "IT Act 66D"],
-    ai_suggestions: [
-      "Trace the phishing domain registration details.",
-      "Request hosting provider logs for the fake link.",
-    ],
-    legal_requests: [
-      { type: "Domain Takedown Request", status: "Sent", date: "2026-06-11" },
-    ],
-    timeline: [
-      { date: "2026-06-10", event: "FIR Registered" },
-      { date: "2026-06-11", event: "Domain takedown request sent" },
-    ],
-  },
-};
+interface CaseDetails {
+  case_id: string;
+  complaint_id: string | null;
+  case_number: string | null;
+  title: string | null;
+  status: string | null;
+  priority: string | null;
+  description: string | null;
 
-const statusStyles: Record<string, string> = {
-  "Investigation Active": "bg-emerald-50 text-emerald-800 border-emerald-200",
-  "Pending Approvals": "bg-amber-50 text-amber-800 border-amber-200",
-  "Awaiting Service Provider": "bg-blue-50 text-blue-800 border-blue-200",
-};
+  district: string | null;
+  police_station: string | null;
+  incident_datetime: string | null;
 
-const priorityStyles: Record<string, string> = {
-  High: "bg-red-50 text-red-700 border-red-200",
-  Medium: "bg-amber-50 text-amber-700 border-amber-200",
-  Low: "bg-gray-50 text-gray-700 border-gray-200",
-};
+  fir_no: string | null;
+  fir_year: number | null;
+  fir_date: string | null;
+
+  original_chargesheet_no: string | null;
+  original_chargesheet_date: string | null;
+
+  supplementary_chargesheet_no: string | null;
+  supplementary_reason: string | null;
+
+  court_name: string | null;
+  court_no: string | null;
+
+  current_stage: string | null;
+
+  assigned_officer_id: number | string | null;
+
+  created_at: string | null;
+  updated_at: string | null;
+  closed_at: string | null;
+}
+
+/* ============================================================
+   STATUS STYLE
+============================================================ */
+
+function getStatusStyle(status: string | null) {
+  switch (status?.toLowerCase()) {
+    case "open":
+      return "border-blue-200 bg-blue-50 text-blue-700";
+
+    case "assigned":
+      return "border-purple-200 bg-purple-50 text-purple-700";
+
+    case "investigation":
+    case "under investigation":
+      return "border-amber-200 bg-amber-50 text-amber-700";
+
+    case "legally cleared":
+      return "border-green-200 bg-green-50 text-green-700";
+
+    case "closed":
+      return "border-gray-200 bg-gray-100 text-gray-700";
+
+    default:
+      return "border-gray-200 bg-gray-50 text-gray-700";
+  }
+}
+
+/* ============================================================
+   PRIORITY STYLE
+============================================================ */
+
+function getPriorityStyle(priority: string | null) {
+  switch (priority?.toLowerCase()) {
+    case "high":
+      return "border-red-200 bg-red-50 text-red-700";
+
+    case "medium":
+      return "border-amber-200 bg-amber-50 text-amber-700";
+
+    case "low":
+      return "border-green-200 bg-green-50 text-green-700";
+
+    default:
+      return "border-gray-200 bg-gray-50 text-gray-700";
+  }
+}
+
+/* ============================================================
+   FORMAT DATE
+============================================================ */
+
+function formatDate(value: string | null) {
+  if (!value) return "-";
+
+  try {
+    return new Date(value).toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  } catch {
+    return "-";
+  }
+}
+
+/* ============================================================
+   FORMAT DATETIME
+============================================================ */
+
+function formatDateTime(value: string | null) {
+  if (!value) return "-";
+
+  try {
+    return new Date(value).toLocaleString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return "-";
+  }
+}
+
+/* ============================================================
+   INFO ITEM
+============================================================ */
+
+function InfoItem({
+  label,
+  value,
+}: {
+  label: string;
+  value: string | null | undefined;
+}) {
+  return (
+    <div>
+      <p className="text-xs font-medium uppercase tracking-wide text-ink-500">
+        {label}
+      </p>
+
+      <p className="mt-1 break-words text-sm font-medium text-ink-900">
+        {value || "-"}
+      </p>
+    </div>
+  );
+}
+
+/* ============================================================
+   PAGE
+============================================================ */
 
 export default function CaseDetailsPage() {
   const params = useParams();
-  const caseId = decodeURIComponent(params?.caseId as string);
-  const { user } = useAuth();
-  const isSHO = user?.role === "SHO";
+  const router = useRouter();
 
-  const [caseData, setCaseData] = useState<any>(null);
+  const caseId = params.caseId as string;
+
+  const [caseData, setCaseData] =
+    useState<CaseDetails | null>(null);
+
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
+
+  const [error, setError] = useState("");
+
+  const [startingInvestigation, setStartingInvestigation] =
+    useState(false);
+
+  const [actionMessage, setActionMessage] =
+    useState("");
+
+  const [actionError, setActionError] =
+    useState("");
+
+  /* ==========================================================
+     LOAD CASE
+  ========================================================== */
 
   useEffect(() => {
-    async function fetchCase() {
-      setLoading(true);
-      setError(false);
+    if (!caseId) return;
+
+    async function loadCase() {
       try {
+        setLoading(true);
+        setError("");
+
         const API_BASE =
-          process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api";
-        const response = await fetch(`${API_BASE}/v1/cases/${caseId}/`);
-        if (!response.ok) throw new Error();
+          process.env.NEXT_PUBLIC_API_URL ||
+          "http://localhost:8000";
+
+        const response = await fetch(
+          `${API_BASE}/api/cases/${encodeURIComponent(
+            caseId
+          )}`,
+          {
+            method: "GET",
+            credentials: "include",
+          }
+        );
+
         const data = await response.json();
-        setCaseData(data);
-      } catch (err) {
-        const mock = MOCK_CASES[caseId];
-        if (mock) {
-          setCaseData(mock);
-        } else {
-          setError(true);
+
+        if (!response.ok) {
+          throw new Error(
+            data?.detail ||
+              "Failed to load case details."
+          );
         }
+
+        setCaseData(data);
+      } catch (error) {
+        console.error(
+          "Case details error:",
+          error
+        );
+
+        setError(
+          error instanceof Error
+            ? error.message
+            : "Failed to load case details."
+        );
       } finally {
         setLoading(false);
       }
     }
-    if (caseId) fetchCase();
+
+    loadCase();
   }, [caseId]);
+
+  /* ==========================================================
+     START INVESTIGATION
+  ========================================================== */
+
+  async function handleStartInvestigation() {
+    if (!caseData) return;
+
+    try {
+      setStartingInvestigation(true);
+
+      setActionMessage("");
+      setActionError("");
+
+      const API_BASE =
+        process.env.NEXT_PUBLIC_API_URL ||
+        "http://localhost:8000";
+
+      const response = await fetch(
+        `${API_BASE}/api/cases/${encodeURIComponent(
+          caseData.case_id
+        )}/start-investigation`,
+        {
+          method: "POST",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data?.detail ||
+            "Failed to start investigation."
+        );
+      }
+
+      /* -------------------------------------------------------
+         Update page immediately
+      ------------------------------------------------------- */
+
+      setCaseData((previous) => {
+        if (!previous) return previous;
+
+        return {
+          ...previous,
+
+          status:
+            data.status ??
+            "Under Investigation",
+
+          current_stage:
+            data.current_stage ??
+            "Investigation Started",
+
+          updated_at:
+            data.updated_at ??
+            previous.updated_at,
+        };
+      });
+
+      setActionMessage(
+        data?.message ||
+          "Investigation started successfully."
+      );
+    } catch (error) {
+      console.error(
+        "Start investigation error:",
+        error
+      );
+
+      setActionError(
+        error instanceof Error
+          ? error.message
+          : "Failed to start investigation."
+      );
+    } finally {
+      setStartingInvestigation(false);
+    }
+  }
+
+  /* ==========================================================
+     INVESTIGATION STARTED?
+  ========================================================== */
+
+  const investigationStarted =
+    caseData?.status?.toLowerCase() ===
+      "under investigation" ||
+    caseData?.status?.toLowerCase() ===
+      "investigation";
+
+  /* ==========================================================
+     RETURN
+  ========================================================== */
 
   return (
     <DashboardLayout>
       <div className="flex min-h-[calc(100vh-73px)]">
-        {isSHO ? <SHOSidebar /> : <IOSidebar />}
 
-        <div className="flex flex-1 flex-col">
+        {/* ====================================================
+            IO SIDEBAR
+        ==================================================== */}
+
+        <IOSidebar />
+
+        {/* ====================================================
+            MAIN CONTENT
+        ==================================================== */}
+
+        <div className="flex min-w-0 flex-1 flex-col">
+
           <main className="flex-1 overflow-y-auto">
-            <div className="p-8 max-w-5xl mx-auto space-y-6">
-              {/* Back link */}
-              <Link
-                href="/cases"
-                className="inline-flex items-center gap-2 text-sm text-ink-600 hover:text-maroon-600 transition-colors"
+
+            <div className="mx-auto w-full max-w-7xl space-y-6 p-8">
+
+              {/* =================================================
+                  BACK BUTTON
+              ================================================= */}
+
+              <button
+                type="button"
+                onClick={() => router.push("/cases")}
+                className="inline-flex items-center gap-2 text-sm font-medium text-maroon-700 transition hover:text-maroon-900"
               >
                 <ArrowLeft className="h-4 w-4" />
-                Back to cases
-              </Link>
 
-              {loading ? (
-                <div className="flex items-center justify-center py-24">
-                  <Loader2 className="h-6 w-6 text-maroon-600 animate-spin mr-2" />
-                  <span className="text-sm text-ink-600">Loading case details...</span>
-                </div>
-              ) : error || !caseData ? (
-                <div className="flex flex-col items-center justify-center py-24 text-center">
-                  <ShieldAlert className="h-8 w-8 text-gold-300 mb-2" />
-                  <p className="font-medium text-ink-900">Case not found</p>
-                  <p className="text-sm text-ink-600 mt-1">
-                    We couldn't find a case with ID "{caseId}".
+                Back to My Cases
+              </button>
+
+              {/* =================================================
+                  LOADING
+              ================================================= */}
+
+              {loading && (
+                <div className="rounded-lg border border-gold-200 bg-white p-12 text-center">
+
+                  <Loader2 className="mx-auto h-7 w-7 animate-spin text-maroon-700" />
+
+                  <p className="mt-3 text-sm text-ink-600">
+                    Loading case details...
                   </p>
+
                 </div>
-              ) : (
-                <>
-                  {/* Header */}
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <div className="flex items-center gap-3">
-                        <h1 className="font-display text-2xl text-ink-900">
-                          {caseData.case_number}
-                        </h1>
-                        <span
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${
-                            statusStyles[caseData.status] ||
-                            "bg-gray-50 text-gray-700 border-gray-200"
-                          }`}
-                        >
-                          {caseData.status}
-                        </span>
-                        <span
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${
-                            priorityStyles[caseData.priority] ||
-                            "bg-gray-50 text-gray-700 border-gray-200"
-                          }`}
-                        >
-                          {caseData.priority} Priority
-                        </span>
-                      </div>
-                      <p className="mt-1 text-ink-600">
-                        {caseData.crime_type} · {caseData.category}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Overview cards */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="rounded-lg border border-gold-200 bg-white p-4">
-                      <div className="flex items-center gap-2 text-ink-600 text-xs font-medium mb-2">
-                        <Calendar className="h-4 w-4" />
-                        DATE FILED
-                      </div>
-                      <p className="text-ink-900 font-medium">{caseData.fir_date}</p>
-                    </div>
-
-                    <div className="rounded-lg border border-gold-200 bg-white p-4">
-                      <div className="flex items-center gap-2 text-ink-600 text-xs font-medium mb-2">
-                        <User className="h-4 w-4" />
-                        ASSIGNED OFFICER
-                      </div>
-                      {caseData.assigned_officer === "Unassigned" ? (
-                        <Link
-                          href="/assign-case"
-                          className="inline-flex items-center gap-1 text-amber-600 hover:text-amber-800 hover:underline font-medium"
-                        >
-                          <UserPlus className="h-4 w-4" />
-                          Assign IO
-                        </Link>
-                      ) : (
-                        <p className="text-ink-900 font-medium">
-                          {caseData.assigned_officer}
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="rounded-lg border border-gold-200 bg-white p-4">
-                      <div className="flex items-center gap-2 text-ink-600 text-xs font-medium mb-2">
-                        <ScrollText className="h-4 w-4" />
-                        SECTIONS APPLIED
-                      </div>
-                      <p className="text-ink-900 font-medium">
-                        {caseData.sections_applied?.join(", ") || "—"}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Complainant details */}
-                  <section className="rounded-lg border border-gold-200 bg-white p-5">
-                    <h2 className="font-medium text-ink-900 mb-4">
-                      Complainant Details
-                    </h2>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                      <div>
-                        <p className="text-ink-600 text-xs mb-1">Name</p>
-                        <p className="text-ink-900 font-medium">
-                          {caseData.complainant_name}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-ink-600 text-xs mb-1">Phone</p>
-                        <p className="text-ink-900 font-medium">
-                          {caseData.complainant_phone || "—"}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-ink-600 text-xs mb-1">Address</p>
-                        <p className="text-ink-900 font-medium">
-                          {caseData.complainant_address || "—"}
-                        </p>
-                      </div>
-                    </div>
-                  </section>
-
-                  {/* Description */}
-                  <section className="rounded-lg border border-gold-200 bg-white p-5">
-                    <h2 className="font-medium text-ink-900 mb-3 flex items-center gap-2">
-                      <FileText className="h-4 w-4 text-maroon-600" />
-                      Case Description
-                    </h2>
-                    <p className="text-sm text-ink-800 leading-relaxed">
-                      {caseData.description || "No description available."}
-                    </p>
-                  </section>
-
-                  {/* AI Suggestions */}
-                  <section className="rounded-lg border border-gold-200 bg-white p-5">
-                    <h2 className="font-medium text-ink-900 mb-3 flex items-center gap-2">
-                      <Sparkles className="h-4 w-4 text-maroon-600" />
-                      AI Suggestions
-                    </h2>
-                    {caseData.ai_suggestions?.length ? (
-                      <ul className="space-y-2">
-                        {caseData.ai_suggestions.map((s: string, i: number) => (
-                          <li
-                            key={i}
-                            className="flex items-start gap-2 text-sm text-ink-800"
-                          >
-                            <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-maroon-600 shrink-0" />
-                            {s}
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className="text-sm text-ink-600">No suggestions yet.</p>
-                    )}
-                  </section>
-
-                  {/* Legal Requests */}
-                  <section className="rounded-lg border border-gold-200 bg-white p-5">
-                    <h2 className="font-medium text-ink-900 mb-4 flex items-center gap-2">
-                      <AlertCircle className="h-4 w-4 text-maroon-600" />
-                      Legal Requests
-                    </h2>
-                    {caseData.legal_requests?.length ? (
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-left text-sm text-ink-900">
-                          <thead className="border-b border-gold-200 text-ink-600">
-                            <tr>
-                              <th className="pb-2 font-medium">Request Type</th>
-                              <th className="pb-2 font-medium">Date</th>
-                              <th className="pb-2 font-medium">Status</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-gold-100">
-                            {caseData.legal_requests.map((r: any, i: number) => (
-                              <tr key={i}>
-                                <td className="py-2">{r.type}</td>
-                                <td className="py-2 text-ink-600">{r.date}</td>
-                                <td className="py-2">
-                                  <span
-                                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${
-                                      r.status === "Sent"
-                                        ? "bg-emerald-50 text-emerald-800 border-emerald-200"
-                                        : "bg-amber-50 text-amber-800 border-amber-200"
-                                    }`}
-                                  >
-                                    {r.status}
-                                  </span>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    ) : (
-                      <p className="text-sm text-ink-600">
-                        No legal requests filed yet.
-                      </p>
-                    )}
-                  </section>
-
-                  {/* Timeline */}
-                  <section className="rounded-lg border border-gold-200 bg-white p-5">
-                    <h2 className="font-medium text-ink-900 mb-4">Case Timeline</h2>
-                    {caseData.timeline?.length ? (
-                      <ol className="relative border-l border-gold-200 ml-2 space-y-4">
-                        {caseData.timeline.map((t: any, i: number) => (
-                          <li key={i} className="ml-4">
-                            <div className="absolute -left-[5px] mt-1.5 h-2.5 w-2.5 rounded-full bg-maroon-600" />
-                            <p className="text-xs text-ink-600">{t.date}</p>
-                            <p className="text-sm text-ink-900 font-medium">
-                              {t.event}
-                            </p>
-                          </li>
-                        ))}
-                      </ol>
-                    ) : (
-                      <p className="text-sm text-ink-600">No timeline events yet.</p>
-                    )}
-                  </section>
-                </>
               )}
+
+              {/* =================================================
+                  ERROR
+              ================================================= */}
+
+              {!loading && error && (
+                <div className="rounded-lg border border-red-200 bg-red-50 p-6">
+
+                  <div className="flex items-start gap-3">
+
+                    <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-600" />
+
+                    <div>
+                      <h2 className="font-semibold text-red-800">
+                        Unable to load case
+                      </h2>
+
+                      <p className="mt-1 text-sm text-red-700">
+                        {error}
+                      </p>
+                    </div>
+
+                  </div>
+
+                </div>
+              )}
+
+              {/* =================================================
+                  CASE
+              ================================================= */}
+
+              {!loading &&
+                !error &&
+                caseData && (
+                  <>
+                    {/* =================================================
+                        CASE HEADER
+                    ================================================= */}
+
+                    <section className="rounded-lg border border-gold-200 bg-white p-6">
+
+                      <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+
+                        <div className="min-w-0">
+
+                          {/* CASE NUMBER + STATUS */}
+
+                          <div className="flex flex-wrap items-center gap-2">
+
+                            <span className="font-semibold text-maroon-700">
+                              {caseData.case_number ||
+                                caseData.case_id}
+                            </span>
+
+                            {caseData.status && (
+                              <span
+                                className={`rounded-full border px-3 py-1 text-xs font-medium ${getStatusStyle(
+                                  caseData.status
+                                )}`}
+                              >
+                                {caseData.status}
+                              </span>
+                            )}
+
+                            {caseData.priority && (
+                              <span
+                                className={`rounded-full border px-3 py-1 text-xs font-medium ${getPriorityStyle(
+                                  caseData.priority
+                                )}`}
+                              >
+                                {caseData.priority} Priority
+                              </span>
+                            )}
+
+                          </div>
+
+                          {/* TITLE */}
+
+                          <h1 className="mt-3 font-display text-2xl text-ink-900">
+                            {caseData.title ||
+                              "Untitled Case"}
+                          </h1>
+
+                          {/* DESCRIPTION */}
+
+                          <p className="mt-2 max-w-3xl text-sm leading-6 text-ink-600">
+                            {caseData.description ||
+                              "No case description available."}
+                          </p>
+
+                        </div>
+
+                        {/* =================================================
+                            START INVESTIGATION
+                        ================================================= */}
+
+                        <div className="shrink-0">
+
+                          {investigationStarted ? (
+                            <div className="inline-flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 px-5 py-2.5 text-sm font-medium text-green-700">
+                              <Shield className="h-4 w-4" />
+
+                              Investigation Started
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={
+                                handleStartInvestigation
+                              }
+                              disabled={
+                                startingInvestigation
+                              }
+                              className="inline-flex items-center justify-center gap-2 rounded-lg bg-maroon-700 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-maroon-800 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              {startingInvestigation ? (
+                                <>
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+
+                                  Starting...
+                                </>
+                              ) : (
+                                <>
+                                  <Play className="h-4 w-4" />
+
+                                  Start Investigation
+                                </>
+                              )}
+                            </button>
+                          )}
+
+                        </div>
+
+                      </div>
+
+                    </section>
+
+                    {/* =================================================
+                        ACTION SUCCESS
+                    ================================================= */}
+
+                    {actionMessage && (
+                      <div className="rounded-lg border border-green-200 bg-green-50 p-4">
+
+                        <div className="flex items-center gap-2">
+
+                          <Shield className="h-5 w-5 text-green-600" />
+
+                          <p className="text-sm font-medium text-green-700">
+                            {actionMessage}
+                          </p>
+
+                        </div>
+
+                      </div>
+                    )}
+
+                    {/* =================================================
+                        ACTION ERROR
+                    ================================================= */}
+
+                    {actionError && (
+                      <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+
+                        <div className="flex items-center gap-2">
+
+                          <AlertCircle className="h-5 w-5 text-red-600" />
+
+                          <p className="text-sm font-medium text-red-700">
+                            {actionError}
+                          </p>
+
+                        </div>
+
+                      </div>
+                    )}
+
+                    {/* =================================================
+                        CASE OVERVIEW
+                    ================================================= */}
+
+                    <section className="rounded-lg border border-gold-200 bg-white p-6">
+
+                      <div className="mb-5 flex items-center gap-3">
+
+                        <Shield className="h-5 w-5 text-maroon-700" />
+
+                        <div>
+                          <h2 className="font-medium text-ink-900">
+                            Case Overview
+                          </h2>
+
+                          <p className="text-sm text-ink-600">
+                            Basic information about this case.
+                          </p>
+                        </div>
+
+                      </div>
+
+                      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+
+                        <InfoItem
+                          label="Case ID"
+                          value={
+                            caseData.case_id
+                          }
+                        />
+
+                        <InfoItem
+                          label="Complaint ID"
+                          value={
+                            caseData.complaint_id
+                          }
+                        />
+
+                        <InfoItem
+                          label="Current Stage"
+                          value={
+                            caseData.current_stage
+                          }
+                        />
+
+                        <InfoItem
+                          label="Assigned IO"
+                          value={
+                            caseData.assigned_officer_id
+                              ? `Officer #${caseData.assigned_officer_id}`
+                              : "-"
+                          }
+                        />
+
+                        <InfoItem
+                          label="Created"
+                          value={formatDateTime(
+                            caseData.created_at
+                          )}
+                        />
+
+                        <InfoItem
+                          label="Last Updated"
+                          value={formatDateTime(
+                            caseData.updated_at
+                          )}
+                        />
+
+                      </div>
+
+                    </section>
+
+                    {/* =================================================
+                        INCIDENT INFORMATION
+                    ================================================= */}
+
+                    <section className="rounded-lg border border-gold-200 bg-white p-6">
+
+                      <div className="mb-5 flex items-center gap-3">
+
+                        <MapPin className="h-5 w-5 text-maroon-700" />
+
+                        <div>
+                          <h2 className="font-medium text-ink-900">
+                            Incident Information
+                          </h2>
+
+                          <p className="text-sm text-ink-600">
+                            Location and incident details.
+                          </p>
+                        </div>
+
+                      </div>
+
+                      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+
+                        <InfoItem
+                          label="District"
+                          value={
+                            caseData.district
+                          }
+                        />
+
+                        <InfoItem
+                          label="Police Station"
+                          value={
+                            caseData.police_station
+                          }
+                        />
+
+                        <InfoItem
+                          label="Incident Date & Time"
+                          value={formatDateTime(
+                            caseData.incident_datetime
+                          )}
+                        />
+
+                      </div>
+
+                    </section>
+
+                    {/* =================================================
+                        FIR DETAILS
+                    ================================================= */}
+
+                    <section className="rounded-lg border border-gold-200 bg-white p-6">
+
+                      <div className="mb-5 flex items-center gap-3">
+
+                        <FileText className="h-5 w-5 text-maroon-700" />
+
+                        <div>
+                          <h2 className="font-medium text-ink-900">
+                            FIR Details
+                          </h2>
+
+                          <p className="text-sm text-ink-600">
+                            FIR information associated with this case.
+                          </p>
+                        </div>
+
+                      </div>
+
+                      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+
+                        <InfoItem
+                          label="FIR Number"
+                          value={
+                            caseData.fir_no
+                          }
+                        />
+
+                        <InfoItem
+                          label="FIR Year"
+                          value={
+                            caseData.fir_year
+                              ? String(
+                                  caseData.fir_year
+                                )
+                              : null
+                          }
+                        />
+
+                        <InfoItem
+                          label="FIR Date"
+                          value={formatDate(
+                            caseData.fir_date
+                          )}
+                        />
+
+                      </div>
+
+                    </section>
+
+                    {/* =================================================
+                        COURT / CHARGESHEET
+                    ================================================= */}
+
+                    <section className="rounded-lg border border-gold-200 bg-white p-6">
+
+                      <div className="mb-5 flex items-center gap-3">
+
+                        <Building2 className="h-5 w-5 text-maroon-700" />
+
+                        <div>
+                          <h2 className="font-medium text-ink-900">
+                            Court & Chargesheet
+                          </h2>
+
+                          <p className="text-sm text-ink-600">
+                            Judicial and chargesheet information.
+                          </p>
+                        </div>
+
+                      </div>
+
+                      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+
+                        <InfoItem
+                          label="Court Name"
+                          value={
+                            caseData.court_name
+                          }
+                        />
+
+                        <InfoItem
+                          label="Court Number"
+                          value={
+                            caseData.court_no
+                          }
+                        />
+
+                        <InfoItem
+                          label="Original Chargesheet No."
+                          value={
+                            caseData.original_chargesheet_no
+                          }
+                        />
+
+                        <InfoItem
+                          label="Original Chargesheet Date"
+                          value={formatDate(
+                            caseData.original_chargesheet_date
+                          )}
+                        />
+
+                        <InfoItem
+                          label="Supplementary Chargesheet No."
+                          value={
+                            caseData.supplementary_chargesheet_no
+                          }
+                        />
+
+                        <InfoItem
+                          label="Supplementary Reason"
+                          value={
+                            caseData.supplementary_reason
+                          }
+                        />
+
+                      </div>
+
+                    </section>
+
+                    {/* =================================================
+                        INVESTIGATION
+                    ================================================= */}
+
+                    <section className="rounded-lg border border-gold-200 bg-white p-6">
+
+                      <div className="mb-5 flex items-center gap-3">
+
+                        <User className="h-5 w-5 text-maroon-700" />
+
+                        <div>
+                          <h2 className="font-medium text-ink-900">
+                            Investigation
+                          </h2>
+
+                          <p className="text-sm text-ink-600">
+                            Investigation status and case progress.
+                          </p>
+                        </div>
+
+                      </div>
+
+                      {investigationStarted ? (
+                        <div className="rounded-lg border border-green-200 bg-green-50 p-5">
+
+                          <div className="flex items-start gap-3">
+
+                            <Shield className="mt-0.5 h-5 w-5 text-green-600" />
+
+                            <div>
+
+                              <p className="font-medium text-green-800">
+                                Investigation is active
+                              </p>
+
+                              <p className="mt-1 text-sm text-green-700">
+                                Investigation started successfully.
+                              </p>
+
+                              <div className="mt-3 flex flex-wrap gap-4 text-xs text-green-700">
+
+                                <span>
+                                  Stage:{" "}
+                                  <strong>
+                                    {caseData.current_stage ||
+                                      "Investigation Started"}
+                                  </strong>
+                                </span>
+
+                                <span>
+                                  Updated:{" "}
+                                  <strong>
+                                    {formatDateTime(
+                                      caseData.updated_at
+                                    )}
+                                  </strong>
+                                </span>
+
+                              </div>
+
+                            </div>
+
+                          </div>
+
+                        </div>
+                      ) : (
+                        <div className="rounded-lg border border-gold-200 bg-ivory p-5">
+
+                          <p className="text-sm text-ink-600">
+                            Investigation has not been started yet.
+                          </p>
+
+                          <button
+                            type="button"
+                            onClick={
+                              handleStartInvestigation
+                            }
+                            disabled={
+                              startingInvestigation
+                            }
+                            className="mt-4 inline-flex items-center gap-2 rounded-lg bg-maroon-700 px-4 py-2 text-sm font-medium text-white transition hover:bg-maroon-800 disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            {startingInvestigation ? (
+                              <>
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                                Starting...
+                              </>
+                            ) : (
+                              <>
+                                <Play className="h-4 w-4" />
+                                Start Investigation
+                              </>
+                            )}
+                          </button>
+
+                        </div>
+                      )}
+
+                    </section>
+
+                    {/* =================================================
+                        CASE TIMELINE / METADATA
+                    ================================================= */}
+
+                    <section className="rounded-lg border border-gold-200 bg-white p-6">
+
+                      <div className="mb-5 flex items-center gap-3">
+
+                        <Calendar className="h-5 w-5 text-maroon-700" />
+
+                        <div>
+                          <h2 className="font-medium text-ink-900">
+                            Case Timeline
+                          </h2>
+
+                          <p className="text-sm text-ink-600">
+                            Important dates associated with the case.
+                          </p>
+                        </div>
+
+                      </div>
+
+                      <div className="space-y-4">
+
+                        <TimelineItem
+                          title="Case Created"
+                          date={caseData.created_at}
+                        />
+
+                        {caseData.updated_at && (
+                          <TimelineItem
+                            title="Last Updated"
+                            date={caseData.updated_at}
+                          />
+                        )}
+
+                        {caseData.closed_at && (
+                          <TimelineItem
+                            title="Case Closed"
+                            date={caseData.closed_at}
+                          />
+                        )}
+
+                      </div>
+
+                    </section>
+
+                    {/* =================================================
+                        RELATED MODULES
+                    ================================================= */}
+
+                    <div className="grid gap-5 md:grid-cols-2">
+
+                      <Link
+                        href={`/fir?case_id=${encodeURIComponent(
+                          caseData.case_id
+                        )}`}
+                        className="rounded-lg border border-gold-200 bg-white p-5 transition hover:border-maroon-300 hover:shadow-sm"
+                      >
+
+                        <div className="flex items-start gap-3">
+
+                          <FileText className="mt-0.5 h-5 w-5 text-maroon-700" />
+
+                          <div>
+                            <h3 className="font-medium text-ink-900">
+                              FIR & Legal Details
+                            </h3>
+
+                            <p className="mt-1 text-sm text-ink-600">
+                              View FIR information and applicable legal sections.
+                            </p>
+                          </div>
+
+                        </div>
+
+                      </Link>
+
+                      <Link
+                        href={`/case-diary?case_id=${encodeURIComponent(
+                          caseData.case_id
+                        )}`}
+                        className="rounded-lg border border-gold-200 bg-white p-5 transition hover:border-maroon-300 hover:shadow-sm"
+                      >
+
+                        <div className="flex items-start gap-3">
+
+                          <FileText className="mt-0.5 h-5 w-5 text-maroon-700" />
+
+                          <div>
+                            <h3 className="font-medium text-ink-900">
+                              Case Diary
+                            </h3>
+
+                            <p className="mt-1 text-sm text-ink-600">
+                              Record and review investigation activities.
+                            </p>
+                          </div>
+
+                        </div>
+
+                      </Link>
+
+                    </div>
+
+                  </>
+                )}
+
             </div>
+
           </main>
+
         </div>
+
       </div>
     </DashboardLayout>
+  );
+}
+
+
+/* ============================================================
+   TIMELINE ITEM
+============================================================ */
+
+function TimelineItem({
+  title,
+  date,
+}: {
+  title: string;
+  date: string | null;
+}) {
+  return (
+    <div className="flex items-start gap-4">
+
+      <div className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-maroon-700" />
+
+      <div>
+        <p className="text-sm font-medium text-ink-900">
+          {title}
+        </p>
+
+        <p className="mt-1 text-xs text-ink-500">
+          {formatDateTime(date)}
+        </p>
+      </div>
+
+    </div>
   );
 }
