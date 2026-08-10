@@ -96,7 +96,7 @@ export async function getLiveDashboardData(userId?: number | string): Promise<Li
         s.case_id,
         s.officer_feedback,
         s.generated_at,
-        co.crime_type
+        co.crime_category
       FROM investigation_suggestions s
       LEFT JOIN complaints co ON co.complaint_id = s.complaint_id
       ORDER BY s.generated_at DESC

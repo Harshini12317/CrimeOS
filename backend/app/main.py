@@ -5,6 +5,7 @@ from app.routes.auth import router as auth_router
 from investigation.legal_library_router import router as legal_library_router
 from app.routes.fir_drafts import router as fir_drafts_router
 from investigation.cases import router as cases_router
+
 from app.routes.legal_section_intelligence import router as legal_section_intelligence_router
 # Import your new ingestion routes
 from app.routes import audio, pdf, image, combo  # Added combo

@@ -1,6 +1,7 @@
 import uuid
 
 from sqlalchemy import (
+    Boolean,
     Column,
     String,
     Text,
@@ -99,4 +100,21 @@ class Complaint(Base):
         server_default=func.now(),
         onupdate=func.now(),
         nullable=False,
+    )
+    source_type = Column(String(20), nullable=True)
+    # 'audio' | 'pdf' | 'image' | 'manual'
+
+    detected_languages = Column(String(100), nullable=True)
+    # comma-separated, e.g. "gu,en"
+
+    raw_extracted_text = Column(Text, nullable=True)
+    # narrative_text exactly as extracted — original script, "as recorded"
+
+    translated_text = Column(Text, nullable=True)
+    # English translation of raw_extracted_text
+
+    needs_human_review = Column(
+        Boolean,
+        nullable=False,
+        default=False,
     )

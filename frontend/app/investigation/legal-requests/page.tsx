@@ -45,7 +45,7 @@ async function getRequestsForIO(ioUserId: User["id"]): Promise<IOLegalRequest[]>
       c.case_number, c.title as case_title, c.status as case_status,
       c.district, c.police_station, c.fir_no,
       cp.ai_summary, cp.description as complaint_description,
-      cp.crime_type, cp.complaint_type
+      cp.crime_category, cp.complaint_type
     from investigation_suggestions s
     left join cases c on c.case_id = s.case_id
     left join complaints cp on cp.complaint_id = s.complaint_id
@@ -58,7 +58,7 @@ async function getRequestsForIO(ioUserId: User["id"]): Promise<IOLegalRequest[]>
     caseId: r.case_id,
     complaintId: r.complaint_id,
     caseNumber: r.case_number,
-    title: r.case_title ?? r.crime_type ?? r.complaint_type ?? "Untitled case",
+    title: r.case_title ?? r.crime_category ?? r.complaint_type ?? "Untitled case",
     complaintSummary: r.ai_summary ?? r.complaint_description ?? "",
     caseStatus: r.case_status,
     district: r.district,
