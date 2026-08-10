@@ -22,14 +22,14 @@ const menu = [
     icon: <FaClipboardList />,
   },
   {
-    title: "Legal Requests",
-    href: "/investigation/legal-requests", // generate requests drafts, sent requests, upload response, AI respose analysis
-    icon: <FaBalanceScaleRight />,
-  },
-  {
     title: "AI assistant",
     href: "/ai-assistant", // Complaint Analysis (OCR/STT/Translation),Investigation SOP, Legal Section Suggestions
     icon: <FaLightbulb />,
+  },
+  {
+    title: "Legal Requests",
+    href: "/investigation/legal-requests", // generate requests drafts, sent requests, upload response, AI respose analysis
+    icon: <FaBalanceScaleRight />,
   },
   {
     title: "Case summary",

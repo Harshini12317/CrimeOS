@@ -8,7 +8,6 @@ interface CaseSummary {
   case_id: string;
   case_number?: string;
   complaint_id?: string;
-  complaint_number?: string;
   title?: string;
   description?: string;
   status?: string;
@@ -80,7 +79,6 @@ export default function LegalCaseList({
     const matchesSearch =
       q === "" ||
       caseItem.case_number?.toLowerCase().includes(q) ||
-      caseItem.complaint_number?.toLowerCase().includes(q) ||
       caseItem.title?.toLowerCase().includes(q) ||
       caseItem.description?.toLowerCase().includes(q);
 
@@ -98,8 +96,6 @@ export default function LegalCaseList({
       <table className="min-w-full divide-y divide-slate-200">
         <thead className="bg-slate-100">
           <tr className="text-left text-sm font-semibold text-slate-700">
-            <th className="px-6 py-4">Case No.</th>
-            <th className="px-6 py-4">Complaint</th>
             <th className="px-6 py-4">Title</th>
             <th className="px-6 py-4">Priority</th>
             <th className="px-6 py-4">Status</th>
@@ -137,17 +133,7 @@ export default function LegalCaseList({
 
               return (
                 <tr key={caseItem.case_id} className="hover:bg-slate-50">
-                  <td className="px-6 py-4 font-semibold">
-                    {caseItem.case_number || caseItem.case_id.slice(0, 8)}
-                  </td>
-
-                  <td className="px-6 py-4">
-                    <span title={caseItem.complaint_number || undefined}>
-                      {caseItem.complaint_number
-                        ? caseItem.complaint_number.slice(0, 8)
-                        : "-"}
-                    </span>
-                  </td>
+  
 
                   <td className="px-6 py-4">{caseItem.title || "-"}</td>
 

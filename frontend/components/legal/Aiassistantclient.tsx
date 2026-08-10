@@ -9,10 +9,9 @@ export default function AiAssistantClient() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-lg font-semibold text-ink-900">AI Investigation Assistant</h1>
+        <h1 className="text-lg font-semibold text-ink-900">Investigation Assistant</h1>
         <p className="mt-1 text-sm text-ink-600">
-          Pick a case below, then choose what you need — reading evidence files, an
-          investigation plan, or the legal sections that apply.
+          Select a case to review evidence, prepare investigation steps, or get legal guidance.
         </p>
       </div>
 
