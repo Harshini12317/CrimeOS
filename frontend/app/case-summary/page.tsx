@@ -6,11 +6,15 @@ import Sidebar from "@/components/layout/io/Sidebar";
 import DashboardLayout from "@/app/dashboard/layout";
 import { 
   MOCK_CASE_SUMMARIES,
+  MOCK_CASE_LIST,
   type CaseSummaryReport,
+  type CaseListItem,
   type EvidenceItem,
-  type Recommendation
+  type Recommendation,
+  type LegalSectionRef,
+  type CaseLawReference
 } from "@/lib/mockData";
-import { getLiveCaseIds, getLiveCaseSummary } from "@/lib/dbActions";
+import { getLiveCaseIds, getLiveCaseList, getLiveCaseSummary } from "@/lib/dbActions";
 import { 
   Shield, 
   Printer, 
@@ -30,7 +34,10 @@ import {
   Building,
   Phone,
   Globe,
-  Save
+  Save,
+  Scale,
+  Gavel,
+  ListChecks
 } from "lucide-react";
 
 function CaseSummaryContent() {
