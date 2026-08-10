@@ -1,515 +1,883 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import axios from "axios";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import {
+  ArrowLeft,
+  CalendarDays,
+  Clock,
+  MapPin,
+  User,
+  Users,
+  FileText,
+  Image as ImageIcon,
+  FileAudio,
+  File,
+  Download,
+} from "lucide-react";
 
-
-interface ComplaintDetail {
+interface Complaint {
   complaint_id: string;
   complaint_number: string;
-  complaint_title?: string;
-  complaint_mode?: string;
-  priority?: string;
-  emergency?: string;
-  
-  complainant_name?: string;
-  complainant_father_name?: string;
-  complainant_age?: string;
-  complainant_gender?: string;
-  complainant_address?: string;
-  complainant_aadhaar?: string;
-  complainant_relationship?: string;
-  complainant_occupation?: string;
-  complainant_nationality?: string;
-  complainant_photo_url?: string;
-  complainant_photo_name?: string;
-  
-  phone?: string;
-  email?: string;
-  crime_category?: string;
-  crime_subcategory?: string;
-  location?: string;
-  landmark?: string;
-  description?: string;
-  status?: string;
-  is_draft?: boolean;
-  created_at?: string;
-  incident_datetime?: string;
-  incident_date?: string;
-  incident_time?: string;
-  ai_summary?: string;
-  officer_notes?: string;
-  notes?: string;
-  aiSummary?: string;
-  officerNotes?: string;
-  attachments?: Array<{
-    id?: string;
-    fileName?: string;
-    fileType?: string;
-    documentUrl?: string;
-    cloudinaryUrl?: string;
-    url?: string;
-    document_url?: string;
-    extractedText?: string;
-    summary?: string;
-  }>;
-  complainants?: Array<any>;
-  victims?: Array<any>;
-  suspects?: Array<any>;
-  documents?: Array<any>;
+  complaint_type: string;
+  crime_category: string;
+  crime_subcategory: string;
+  priority: string;
+  incident_date?: string | null;
+  incident_time?: string | null;
+  location?: string | null;
+  description: string;
+  ai_summary?: string | null;
+  officer_notes?: string | null;
+  status: string;
+  created_at?: string | null;
+  updated_at?: string | null;
 }
 
-export default function ComplaintPage() {
-  const params = useParams();
-  const complaintId = ((params as Record<string, string | string[] | undefined>)?.complaintId as string | undefined) ?? "";
-  const [complaint, setComplaint] = useState<ComplaintDetail | null>(null);
+interface Complainant {
+  complainant_id: string;
+  name: string;
+  contact?: string | null;
+  relationship?: string | null;
+  statement?: string | null;
+  type?: string | null;
+  address?: string | null;
+}
+
+interface Victim {
+  victim_id: string;
+  name: string;
+  contact?: string | null;
+  relationship?: string | null;
+  statement?: string | null;
+  type?: string | null;
+  description?: string | null;
+  address?: string | null;
+  photo_url?: string | null;
+}
+
+interface Suspect {
+  suspect_id: string;
+  name?: string | null;
+  contact?: string | null;
+  description?: string | null;
+  status?: string | null;
+  type?: string | null;
+  address?: string | null;
+  photo_url?: string | null;
+}
+
+interface Evidence {
+  evidence_id: string;
+  evidence_type?: string | null;
+  file_name?: string | null;
+  file_type?: string | null;
+  cloudinary_url?: string | null;
+  cloudinary_public_id?: string | null;
+  extracted_text?: string | null;
+  summary?: string | null;
+  extraction_data?: unknown;
+  created_at?: string | null;
+}
+
+interface ComplaintDetails {
+  complaint: Complaint;
+  complainants: Complainant[];
+  victims: Victim[];
+  suspects: Suspect[];
+  evidence: Evidence[];
+}
+
+export default function ComplaintDetailsPage({
+  params,
+}: {
+  params: Promise<{ complaintId: string }>;
+}) {
+  const [data, setData] =
+    useState<ComplaintDetails | null>(null);
+
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [caseExists, setCaseExists] = useState(false);
-  const [caseId, setCaseId] = useState<string | null>(null);
-  const [creatingCase, setCreatingCase] = useState(false);
-  const [caseActionError, setCaseActionError] = useState<string | null>(null);
-
-  const handleCreateCase = async () => {
-    if (!complaintId || !complaint) return;
-
-    setCreatingCase(true);
-    setCaseActionError(null);
-
-    try {
-      const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
-      const res = await axios.post(`${API_BASE}/api/cases`, {
-        complaint_id: complaint.complaint_id || complaintId,
-        complaint_number: complaint.complaint_number,
-        title: complaint.complaint_title || `Case for ${complaint.complaint_number}`,
-        priority: complaint.status || "Medium",
-      });
-
-      const newCaseId = res?.data?.data?.case_id || null;
-      setCaseExists(true);
-      setCaseId(newCaseId);
-    } catch (err: any) {
-      console.error(err);
-      setCaseActionError(err?.response?.data?.detail || err?.message || "Unable to create case");
-    } finally {
-      setCreatingCase(false);
-    }
-  };
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    if (!complaintId) {
-      setLoading(false);
-      return;
-    }
-
-    async function load() {
+    async function loadComplaint() {
       try {
-        const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
-        const [cRes, caseRes] = await Promise.allSettled([
-          axios.get(`${API_BASE}/api/complaints/${encodeURIComponent(complaintId)}`),
-          axios.get(`${API_BASE}/api/cases/by-complaint/${encodeURIComponent(complaintId)}`),
-        ]);
+        const { complaintId } = await params;
 
-        if (cRes.status === "fulfilled") {
-          const data = (cRes.value as any).data;
-          const complaintData = data?.complaint || data;
-          setComplaint(complaintData || null);
+        const apiUrl =
+          process.env.NEXT_PUBLIC_API_URL ||
+          "http://localhost:8000";
+
+        const response = await fetch(
+          `${apiUrl}/api/complaints/${complaintId}`,
+          {
+            credentials: "include",
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error(
+            response.status === 404
+              ? "Complaint not found."
+              : "Failed to load complaint."
+          );
         }
 
-        if (caseRes.status === "fulfilled") {
-          const data = (caseRes.value as any).data;
-          setCaseExists(true);
-          setCaseId(data.case_id || null);
-        } else {
-          setCaseExists(false);
-        }
-      } catch (err: any) {
-        console.error(err);
-        setError(err?.response?.data?.detail || err?.message || String(err));
+        const result = await response.json();
+
+        setData(result);
+      } catch (err) {
+        console.error(
+          "Complaint details error:",
+          err
+        );
+
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Unable to load complaint."
+        );
       } finally {
         setLoading(false);
       }
     }
 
-    load();
-  }, [complaintId]);
+    loadComplaint();
+  }, [params]);
 
-  // debug: log the complaint object returned by the API
-  useEffect(() => {
-    if (complaint) {
-      // eslint-disable-next-line no-console
-      console.log("Loaded complaint:", complaint);
-    }
-  }, [complaint]);
+  // ---------------------------------------------------------
+  // Loading
+  // ---------------------------------------------------------
 
-  if (loading) return (
-    <div className="min-h-screen bg-slate-100">
-  
-      <div className="flex">
-    
-        <main className="flex-1 p-6 lg:p-8">
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">Loading complaint...</div>
-        </main>
+  if (loading) {
+    return (
+      <div className="min-h-full bg-ivory">
+        <div className="mx-auto max-w-[1400px] px-8 py-8">
+          <div className="rounded-lg border border-gold-200 bg-white p-16 text-center">
+            <div className="mx-auto h-7 w-7 animate-spin rounded-full border-2 border-gold-200 border-t-maroon-800" />
+
+            <p className="mt-4 text-sm text-ink-600">
+              Loading complaint details...
+            </p>
+          </div>
+        </div>
       </div>
+    );
+  }
+
+  // ---------------------------------------------------------
+  // Error
+  // ---------------------------------------------------------
+
+  if (error || !data) {
+    return (
+      <div className="min-h-full bg-ivory">
+        <div className="mx-auto max-w-[1400px] px-8 py-8">
+
+          <Link
+            href="/complaints"
+            className="mb-6 inline-flex items-center gap-2 text-sm font-medium text-maroon-800 hover:text-maroon-600"
+          >
+            <ArrowLeft size={16} />
+            Back to Complaints
+          </Link>
+
+          <div className="rounded-lg border border-red-200 bg-red-50 p-8">
+            <h2 className="font-serif text-xl text-red-900">
+              Unable to load complaint
+            </h2>
+
+            <p className="mt-2 text-sm text-red-700">
+              {error || "Complaint not found."}
+            </p>
+          </div>
+
+        </div>
+      </div>
+    );
+  }
+
+  const complaint = data.complaint;
+  function Section({
+  label,
+  title,
+  icon,
+  children,
+}: {
+  label: string;
+  title: string;
+  icon: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="mt-6 rounded-lg border border-gold-200 bg-white p-6">
+
+      <div className="mb-5 flex items-center gap-3 border-b border-gold-100 pb-4">
+
+        <div className="flex h-9 w-9 items-center justify-center rounded-md bg-maroon-50 text-maroon-800">
+          {icon}
+        </div>
+
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-gold-700">
+            {label}
+          </p>
+
+          <h2 className="font-serif text-lg text-ink-900">
+            {title}
+          </h2>
+        </div>
+
+      </div>
+
+      {children}
+
+    </section>
+  );
+}
+function InfoItem({
+  label,
+  value,
+}: {
+  label: string;
+  value?: string | null;
+}) {
+  return (
+    <div>
+      <p className="text-xs font-medium uppercase tracking-wide text-ink-500">
+        {label}
+      </p>
+
+      <p className="mt-1 text-sm font-medium text-ink-900">
+        {value || "—"}
+      </p>
     </div>
   );
+}
+function PersonCard({
+  name,
+  contact,
+  relationship,
+  type,
+  address,
+  statement,
+  description,
+  status,
+  photoUrl,
+}: {
+  name: string;
+  contact?: string | null;
+  relationship?: string | null;
+  type?: string | null;
+  address?: string | null;
+  statement?: string | null;
+  description?: string | null;
+  status?: string | null;
+  photoUrl?: string | null;
+}) {
+  return (
+    <div className="rounded-lg border border-gold-200 bg-ivory/40 p-5">
 
-  if (error) return (
-    <div className="min-h-screen bg-slate-100">
+      <div className="flex gap-4">
 
-      <div className="flex">
-      
-        <main className="flex-1 p-6 lg:p-8">
-          <div className="rounded-2xl border border-rose-200 bg-rose-50 p-6 text-rose-700">{error}</div>
-        </main>
+        {photoUrl ? (
+          <img
+            src={photoUrl}
+            alt={name}
+            className="h-16 w-16 rounded-md object-cover"
+          />
+        ) : (
+          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-md bg-maroon-50 text-maroon-800">
+            <User size={24} />
+          </div>
+        )}
+
+        <div className="min-w-0">
+
+          <h3 className="font-serif text-lg text-ink-900">
+            {name}
+          </h3>
+
+          {type && (
+            <p className="mt-0.5 text-xs text-ink-500">
+              {type}
+            </p>
+          )}
+
+        </div>
+
       </div>
+
+      <div className="mt-5 grid gap-4 sm:grid-cols-2">
+
+        <InfoItem
+          label="Contact"
+          value={contact}
+        />
+
+        <InfoItem
+          label="Relationship"
+          value={relationship}
+        />
+
+        <InfoItem
+          label="Status"
+          value={status}
+        />
+
+        <InfoItem
+          label="Address"
+          value={address}
+        />
+
+      </div>
+
+      {description && (
+        <div className="mt-5 border-t border-gold-100 pt-4">
+
+          <p className="text-xs font-semibold uppercase tracking-wide text-gold-700">
+            Description
+          </p>
+
+          <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-ink-700">
+            {description}
+          </p>
+
+        </div>
+      )}
+
+      {statement && (
+        <div className="mt-5 border-t border-gold-100 pt-4">
+
+          <p className="text-xs font-semibold uppercase tracking-wide text-gold-700">
+            Statement
+          </p>
+
+          <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-ink-700">
+            {statement}
+          </p>
+
+        </div>
+      )}
+
     </div>
   );
+}
+function EvidenceCard({
+  evidence,
+}: {
+  evidence: Evidence;
+}) {
+  const fileType =
+    evidence.file_type?.toLowerCase() || "";
 
-  if (!complaint) return (
-    <div className="min-h-screen bg-slate-100">
-  
-      <div className="flex">
-       
-        <main className="flex-1 p-6 lg:p-8">
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">Complaint not found.</div>
-        </main>
-      </div>
-    </div>
-  );
+  let Icon = File;
 
-  const complainantPhotoUrl = complaint.complainant_photo_url || (complaint as any).complainantPhotoUrl || "";
-  const complainantPhotoName = complaint.complainant_photo_name || (complaint as any).complainantPhotoName || "";
-
-  const mergedAttachments = [
-    ...(complaint.attachments || []),
-    ...((complaint.documents || []) as any[]).map((doc) => ({
-      id: String(doc.document_id || doc.id || doc.fileName || Math.random()),
-      fileName: doc.fileName || doc.title || "Document",
-      fileType: doc.fileType || doc.document_type || "document",
-      documentUrl: doc.documentUrl || doc.cloudinaryUrl || doc.filePath || doc.file_path,
-      cloudinaryUrl: doc.cloudinaryUrl || doc.filePath || doc.file_path,
-      url: doc.url || doc.documentUrl || doc.filePath || doc.file_path,
-      document_url: (doc as any).document_url || undefined,
-      summary: (doc as any).summary || undefined,
-    })),
-  ];
+  if (
+    fileType.includes("image") ||
+    fileType.includes("jpg") ||
+    fileType.includes("png") ||
+    fileType.includes("jpeg")
+  ) {
+    Icon = ImageIcon;
+  } else if (
+    fileType.includes("audio") ||
+    fileType.includes("mp3") ||
+    fileType.includes("wav")
+  ) {
+    Icon = FileAudio;
+  } else if (
+    fileType.includes("pdf") ||
+    fileType.includes("document")
+  ) {
+    Icon = FileText;
+  }
 
   return (
-    <div className="min-h-screen bg-slate-100">
+    <div className="rounded-lg border border-gold-200 bg-ivory/40 p-5">
 
-      <div className="flex">
-        <main className="flex-1 p-6 lg:p-8">
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="flex items-center gap-3">
-                  <h1 className="text-2xl font-semibold text-slate-900">
-                    {complaint.complaint_title || `Complaint ${complaint.complaint_number}`}
-                  </h1>
-                  {complaint.is_draft && (
-                    <span className="inline-block bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-sm font-medium">
-                      Draft
-                    </span>
-                  )}
-                </div>
-                <p className="mt-1 text-sm text-slate-500">{complaint.status || "Pending"}</p>
-              </div>
-              <div className="text-right text-sm text-slate-500">{complaint.created_at ? new Date(complaint.created_at).toLocaleString() : "No date"}</div>
-            </div>
+      <div className="flex items-start justify-between gap-4">
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow space-y-6">
-              {/* Complaint Information Section */}
-              <div>
-                <h2 className="text-lg font-semibold text-slate-900 mb-4">Complaint Information</h2>
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  <div>
-                    <p className="text-sm font-medium text-slate-700">Complaint Number</p>
-                    <p className="mt-1 text-sm text-slate-600">{complaint.complaint_number || "Not provided"}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-slate-700">Complaint Mode</p>
-                    <p className="mt-1 text-sm text-slate-600">{complaint.complaint_mode || "Not provided"}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-slate-700">Priority</p>
-                    <p className="mt-1 text-sm text-slate-600">{complaint.priority || "Not provided"}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-slate-700">Emergency</p>
-                    <p className="mt-1 text-sm text-slate-600">{complaint.emergency || "No"}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-slate-700">Crime Category</p>
-                    <p className="mt-1 text-sm text-slate-600">{complaint.crime_category || "Not provided"}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-slate-700">Crime Sub-Category</p>
-                    <p className="mt-1 text-sm text-slate-600">{complaint.crime_subcategory || "Not provided"}</p>
-                  </div>
-                </div>
-              </div>
+        <div className="flex min-w-0 gap-3">
 
-              {/* Incident Details Section */}
-              <div>
-                <h2 className="text-lg font-semibold text-slate-900 mb-4">Incident Details</h2>
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  <div>
-                    <p className="text-sm font-medium text-slate-700">Incident Date</p>
-                    <p className="mt-1 text-sm text-slate-600">{complaint.incident_date ? new Date(complaint.incident_date).toLocaleDateString() : "Not provided"}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-slate-700">Incident Time</p>
-                    <p className="mt-1 text-sm text-slate-600">{complaint.incident_time || "Not provided"}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-slate-700">Location</p>
-                    <p className="mt-1 text-sm text-slate-600">{complaint.location || "Not provided"}</p>
-                  </div>
-                  {complaint.landmark && (
-                    <div>
-                      <p className="text-sm font-medium text-slate-700">Landmark</p>
-                      <p className="mt-1 text-sm text-slate-600">{complaint.landmark}</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Complainant Details Section */}
-              <div>
-                <h2 className="text-lg font-semibold text-slate-900 mb-4">Complainant Details</h2>
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  <div>
-                    <p className="text-sm font-medium text-slate-700">Full Name</p>
-                    <p className="mt-1 text-sm text-slate-600">{complaint.complainant_name || "Not provided"}</p>
-                  </div>
-                  {complaint.complainant_father_name && (
-                    <div>
-                      <p className="text-sm font-medium text-slate-700">Father's Name</p>
-                      <p className="mt-1 text-sm text-slate-600">{complaint.complainant_father_name}</p>
-                    </div>
-                  )}
-                  {complaint.complainant_age && (
-                    <div>
-                      <p className="text-sm font-medium text-slate-700">Age</p>
-                      <p className="mt-1 text-sm text-slate-600">{complaint.complainant_age}</p>
-                    </div>
-                  )}
-                  {complaint.complainant_gender && (
-                    <div>
-                      <p className="text-sm font-medium text-slate-700">Gender</p>
-                      <p className="mt-1 text-sm text-slate-600">{complaint.complainant_gender}</p>
-                    </div>
-                  )}
-                  <div>
-                    <p className="text-sm font-medium text-slate-700">Phone</p>
-                    <p className="mt-1 text-sm text-slate-600">{complaint.phone || "-"}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-slate-700">Email</p>
-                    <p className="mt-1 text-sm text-slate-600">{complaint.email || "-"}</p>
-                  </div>
-                  {complaint.complainant_occupation && (
-                    <div>
-                      <p className="text-sm font-medium text-slate-700">Occupation</p>
-                      <p className="mt-1 text-sm text-slate-600">{complaint.complainant_occupation}</p>
-                    </div>
-                  )}
-                  {complaint.complainant_nationality && (
-                    <div>
-                      <p className="text-sm font-medium text-slate-700">Nationality</p>
-                      <p className="mt-1 text-sm text-slate-600">{complaint.complainant_nationality}</p>
-                    </div>
-                  )}
-                  {complaint.complainant_relationship && (
-                    <div>
-                      <p className="text-sm font-medium text-slate-700">Relationship to Case</p>
-                      <p className="mt-1 text-sm text-slate-600">{complaint.complainant_relationship}</p>
-                    </div>
-                  )}
-                  {complaint.complainant_aadhaar && (
-                    <div>
-                      <p className="text-sm font-medium text-slate-700">Aadhaar Number</p>
-                      <p className="mt-1 text-sm text-slate-600">{complaint.complainant_aadhaar}</p>
-                    </div>
-                  )}
-                </div>
-                {complaint.complainant_address && (
-                  <div className="mt-4">
-                    <p className="text-sm font-medium text-slate-700">Address</p>
-                    <p className="mt-1 text-sm text-slate-600 whitespace-pre-wrap">{complaint.complainant_address}</p>
-                  </div>
-                )}
-                {complainantPhotoUrl && (
-                  <div className="mt-4">
-                    <p className="text-sm font-medium text-slate-700 mb-2">Photo</p>
-                    <img src={complainantPhotoUrl} alt={complainantPhotoName || "Complainant photo"} className="max-h-48 rounded-lg" />
-                    {complainantPhotoName ? (
-                      <p className="mt-2 text-sm text-slate-500">{complainantPhotoName}</p>
-                    ) : null}
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <h2 className="text-lg font-semibold text-slate-900 mb-4">Incident Description</h2>
-                <p className="text-sm text-slate-600 whitespace-pre-wrap">{complaint.description || "Not provided"}</p>
-              </div>
-
-              {(complaint.ai_summary || complaint.aiSummary) && (
-                <div>
-                  <h2 className="text-lg font-semibold text-slate-900 mb-4">AI Summary</h2>
-                  <p className="text-sm text-slate-600 whitespace-pre-wrap">{complaint.ai_summary || complaint.aiSummary}</p>
-                </div>
-              )}
-
-              {(complaint.officer_notes || complaint.officerNotes) && (
-                <div>
-                  <h2 className="text-lg font-semibold text-slate-900 mb-4">Officer Notes</h2>
-                  <p className="text-sm text-slate-600 whitespace-pre-wrap">{complaint.officer_notes || complaint.officerNotes}</p>
-                </div>
-              )}
-
-              {(complaint.attachments && complaint.attachments.length > 0) || (complaint.documents && complaint.documents.length > 0) ? (
-                <div>
-                  <h2 className="text-lg font-semibold text-slate-900 mb-4">Attachments & Evidence</h2>
-                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                    {mergedAttachments.map((att) => {
-                      const url = att.documentUrl || att.cloudinaryUrl || att.url || (att as any).document_url;
-                      const safeUrl = url ? encodeURI(url) : undefined;
-                      const isImage = (att.fileType || "").startsWith("image") || (safeUrl && /\.(jpg|jpeg|png|gif|webp)$/i.test(safeUrl));
-
-                      return (
-                        <div key={att.id || att.fileName} className="rounded-xl border bg-white p-3 text-sm shadow-sm">
-                          <p className="font-semibold text-slate-900">{att.fileName || "Document"}</p>
-                          <p className="text-xs text-slate-500">{att.fileType || "—"}</p>
-                          {isImage && safeUrl ? (
-                            <a href={safeUrl} target="_blank" rel="noreferrer noopener">
-                              <img src={safeUrl} alt={att.fileName || "attachment"} className="mt-2 max-h-40 w-full object-contain" />
-                            </a>
-                          ) : safeUrl ? (
-                            <a href={safeUrl} target="_blank" rel="noreferrer noopener" className="mt-2 inline-block text-indigo-600 hover:underline">Open document</a>
-                          ) : att.summary ? (
-                            <p className="mt-2 text-slate-600">{att.summary}</p>
-                          ) : null}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              ) : null}
-
-              {complaint.complainants && complaint.complainants.length > 0 && (
-                <div>
-                  <h2 className="text-lg font-semibold text-slate-900 mb-4">Complainants</h2>
-                  <div className="space-y-3">
-                    {complaint.complainants.map((c: any, idx: number) => (
-                      <div key={idx} className="rounded-xl bg-slate-50 p-4 border border-slate-200">
-                        <p className="font-semibold text-slate-900">{c.name || `Complainant ${idx + 1}`}</p>
-                        <p className="text-sm text-slate-600">Contact: {c.contact || "—"}</p>
-                        {c.statement && <p className="text-sm text-slate-600 mt-2">Statement: {c.statement}</p>}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {complaint.victims && complaint.victims.length > 0 && (
-                <div>
-                  <h2 className="text-lg font-semibold text-slate-900 mb-4">Victims</h2>
-                  <div className="space-y-3">
-                    {complaint.victims.map((v: any, idx: number) => (
-                      <div key={v.victim_id || idx} className="rounded-xl bg-slate-50 p-4 border border-slate-200">
-                        <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
-                          <div className="flex-1">
-                            <p className="font-semibold text-slate-900">{v.fullName || `Victim ${idx + 1}`}</p>
-                            <div className="grid gap-2 sm:grid-cols-2 mt-2 text-sm text-slate-600">
-                              <p>Age: {v.age || "—"}</p>
-                              <p>Gender: {v.gender || "—"}</p>
-                              <p className="sm:col-span-2">Address: {v.address || "—"}</p>
-                              {v.injuries && <p className="sm:col-span-2">Injuries: {v.injuries}</p>}
-                            </div>
-                          </div>
-                          {(v.photoUrl || v.photo_url) ? (
-                            <div className="max-w-xs">
-                              <p className="text-sm font-medium text-slate-700">Photo</p>
-                              <img src={v.photoUrl || v.photo_url} alt={`Victim ${idx + 1}`} className="mt-2 max-h-40 w-full rounded-xl object-cover border" />
-                            </div>
-                          ) : null}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {complaint.suspects && complaint.suspects.length > 0 && (
-                <div>
-                  <h2 className="text-lg font-semibold text-slate-900 mb-4">Suspects</h2>
-                  <div className="space-y-3">
-                    {complaint.suspects.map((s: any, idx: number) => (
-                      <div key={s.suspect_id || idx} className="rounded-xl bg-slate-50 p-4 border border-slate-200">
-                        <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
-                          <div className="flex-1">
-                            <p className="font-semibold text-slate-900">{s.fullName || `Suspect ${idx + 1}`}</p>
-                            <div className="grid gap-2 sm:grid-cols-2 mt-2 text-sm text-slate-600">
-                              <p>Alias: {s.alias || "—"}</p>
-                              <p>Gender: {s.gender || "—"}</p>
-                              <p className="sm:col-span-2">Address: {s.presentAddress || s.permanentAddress || "—"}</p>
-                            </div>
-                          </div>
-                          {(s.photoUrl || s.photo_url) ? (
-                            <div className="max-w-xs">
-                              <p className="text-sm font-medium text-slate-700">Photo</p>
-                              <img src={s.photoUrl || s.photo_url} alt={`Suspect ${idx + 1}`} className="mt-2 max-h-40 w-full rounded-xl object-cover border" />
-                            </div>
-                          ) : null}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {complaint.notes && (
-                <div>
-                  <h2 className="text-lg font-semibold text-slate-900 mb-4">Additional Notes</h2>
-                  <p className="text-sm text-slate-600 whitespace-pre-wrap">{complaint.notes}</p>
-                </div>
-              )}
-
-              {/* Action Buttons */}
-              <div className="mt-6 flex gap-3 rounded-2xl border border-slate-200 bg-white p-6 shadow">
-                <Link href="/complaints" className="inline-flex items-center rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Back to list</Link>
-
-                {complaint.is_draft ? (
-                  <Link href={`/complaints/${complaint.complaint_id}/submit`} className="inline-flex items-center rounded-md bg-orange-600 px-4 py-2 text-sm font-medium text-white hover:bg-orange-700">
-                    Submit Draft
-                  </Link>
-                ) : caseExists ? (
-                  <Link href={`/cases/${caseId}`} className="inline-flex items-center rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">View case</Link>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={handleCreateCase}
-                    disabled={creatingCase}
-                    className="inline-flex items-center rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-60"
-                  >
-                    {creatingCase ? "Creating case..." : "Create case"}
-                  </button>
-                )}
-
-                {caseActionError ? (
-                  <p className="text-sm text-rose-600 ml-auto">{caseActionError}</p>
-                ) : null}
-              </div>
-            </div>
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-maroon-50 text-maroon-800">
+            <Icon size={19} />
           </div>
-        </main>
+
+          <div className="min-w-0">
+
+            <h3 className="truncate text-sm font-semibold text-ink-900">
+              {evidence.file_name ||
+                "Unnamed evidence"}
+            </h3>
+
+            <p className="mt-1 text-xs text-ink-500">
+              {evidence.evidence_type ||
+                "Evidence"}
+              {evidence.file_type
+                ? ` · ${evidence.file_type}`
+                : ""}
+            </p>
+
+          </div>
+
+        </div>
+
+        {evidence.cloudinary_url && (
+          <a
+            href={evidence.cloudinary_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-gold-300 bg-white px-3 py-2 text-xs font-medium text-maroon-800 hover:bg-maroon-800 hover:text-gold-100"
+          >
+            <Download size={14} />
+            Open
+          </a>
+        )}
+
+      </div>
+
+      {evidence.summary && (
+        <div className="mt-4 border-t border-gold-100 pt-4">
+
+          <p className="text-xs font-semibold uppercase tracking-wide text-gold-700">
+            Summary
+          </p>
+
+          <p className="mt-1 text-sm leading-6 text-ink-700">
+            {evidence.summary}
+          </p>
+
+        </div>
+      )}
+
+      {evidence.extracted_text && (
+        <div className="mt-4 border-t border-gold-100 pt-4">
+
+          <p className="text-xs font-semibold uppercase tracking-wide text-gold-700">
+            Extracted Text
+          </p>
+
+          <p className="mt-1 max-h-40 overflow-y-auto whitespace-pre-wrap text-sm leading-6 text-ink-700">
+            {evidence.extracted_text}
+          </p>
+
+        </div>
+      )}
+
+    </div>
+  );
+}
+function EmptySection({
+  text,
+}: {
+  text: string;
+}) {
+  return (
+    <div className="rounded-md border border-dashed border-gold-200 bg-ivory/40 p-8 text-center">
+      <p className="text-sm text-ink-500">
+        {text}
+      </p>
+    </div>
+  );
+}
+
+function StatusBadge({
+  status,
+}: {
+  status: string;
+}) {
+  const value = status?.toLowerCase();
+
+  let classes =
+    "bg-ink-100 text-ink-700";
+
+  if (value === "registered") {
+    classes = "bg-blue-50 text-blue-700";
+  } else if (value === "assigned") {
+    classes = "bg-purple-50 text-purple-700";
+  } else if (
+    value === "under investigation"
+  ) {
+    classes = "bg-amber-50 text-amber-700";
+  } else if (value === "closed") {
+    classes = "bg-green-50 text-green-700";
+  }
+
+  return (
+    <span
+      className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${classes}`}
+    >
+      {status}
+    </span>
+  );
+}
+function PriorityBadge({
+  priority,
+}: {
+  priority: string;
+}) {
+  const value = priority?.toLowerCase();
+
+  let classes =
+    "border-gold-200 bg-gold-50 text-ink-700";
+
+  if (value === "high") {
+    classes =
+      "border-red-200 bg-red-50 text-red-700";
+  } else if (value === "medium") {
+    classes =
+      "border-amber-200 bg-amber-50 text-amber-700";
+  } else if (value === "low") {
+    classes =
+      "border-green-200 bg-green-50 text-green-700";
+  }
+
+  return (
+    <span
+      className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${classes}`}
+    >
+      {priority}
+    </span>
+  );
+}
+function formatDate(date: string) {
+  const parsed = new Date(date);
+
+  if (Number.isNaN(parsed.getTime())) {
+    return date;
+  }
+
+  return parsed.toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+  return (
+    <div className="min-h-full bg-ivory">
+      <div className="mx-auto max-w-[1400px] px-8 py-8">
+
+        {/* ================================================= */}
+        {/* BACK */}
+        {/* ================================================= */}
+
+        <Link
+          href="/complaints"
+          className="mb-5 inline-flex items-center gap-2 text-sm font-medium text-maroon-800 transition hover:text-maroon-600"
+        >
+          <ArrowLeft size={16} />
+          Back to Complaints
+        </Link>
+
+        {/* ================================================= */}
+        {/* HEADER */}
+        {/* ================================================= */}
+
+        <div className="rounded-lg border border-gold-200 bg-white px-6 py-5">
+
+          <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-center">
+
+            <div>
+
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-gold-700">
+                Complaint Details
+              </p>
+
+              <div className="mt-1 flex flex-wrap items-center gap-3">
+
+                <h1 className="font-serif text-2xl text-ink-900">
+                  {complaint.complaint_number}
+                </h1>
+
+                <StatusBadge
+                  status={complaint.status}
+                />
+
+                <PriorityBadge
+                  priority={complaint.priority}
+                />
+
+              </div>
+
+              <p className="mt-1 text-sm text-ink-600">
+                {complaint.crime_category}
+                {" · "}
+                {complaint.crime_subcategory}
+              </p>
+
+            </div>
+
+          </div>
+
+        </div>
+
+        {/* ================================================= */}
+        {/* COMPLAINT INFORMATION */}
+        {/* ================================================= */}
+
+        <Section
+          label="Complaint Information"
+          title="Basic complaint details"
+          icon={<FileText size={18} />}
+        >
+
+          <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
+
+            <InfoItem
+              label="Complaint Number"
+              value={complaint.complaint_number}
+            />
+
+            <InfoItem
+              label="Complaint Type"
+              value={complaint.complaint_type}
+            />
+
+            <InfoItem
+              label="Crime Category"
+              value={complaint.crime_category}
+            />
+
+            <InfoItem
+              label="Crime Subcategory"
+              value={complaint.crime_subcategory}
+            />
+
+            <InfoItem
+              label="Incident Date"
+              value={
+                complaint.incident_date
+                  ? formatDate(
+                      complaint.incident_date
+                    )
+                  : null
+              }
+            />
+
+            <InfoItem
+              label="Incident Time"
+              value={
+                complaint.incident_time ||
+                null
+              }
+            />
+
+            <InfoItem
+              label="Priority"
+              value={complaint.priority}
+            />
+
+            <InfoItem
+              label="Status"
+              value={complaint.status}
+            />
+
+          </div>
+
+          {/* LOCATION */}
+
+          <div className="mt-6 border-t border-gold-100 pt-5">
+
+            <p className="text-xs font-semibold uppercase tracking-wide text-gold-700">
+              Incident Location
+            </p>
+
+            <div className="mt-2 flex items-start gap-2 text-sm text-ink-800">
+
+              <MapPin
+                size={17}
+                className="mt-0.5 shrink-0 text-maroon-800"
+              />
+
+              <span>
+                {complaint.location ||
+                  "Location not provided"}
+              </span>
+
+            </div>
+
+          </div>
+
+          {/* DESCRIPTION */}
+
+          <div className="mt-6 border-t border-gold-100 pt-5">
+
+            <p className="text-xs font-semibold uppercase tracking-wide text-gold-700">
+              Complaint Description
+            </p>
+
+            <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-ink-800">
+              {complaint.description ||
+                "No description provided."}
+            </p>
+
+          </div>
+
+          {/* AI SUMMARY */}
+
+          {complaint.ai_summary && (
+            <div className="mt-6 border-t border-gold-100 pt-5">
+
+              <p className="text-xs font-semibold uppercase tracking-wide text-gold-700">
+                AI Summary
+              </p>
+
+              <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-ink-800">
+                {complaint.ai_summary}
+              </p>
+
+            </div>
+          )}
+
+        </Section>
+
+        {/* ================================================= */}
+        {/* COMPLAINANTS */}
+        {/* ================================================= */}
+
+        <Section
+          label="Complainant"
+          title="Complainant details"
+          icon={<User size={18} />}
+        >
+
+          {data.complainants.length === 0 ? (
+            <EmptySection text="No complainant details available." />
+          ) : (
+            <div className="space-y-5">
+
+              {data.complainants.map(
+                (complainant) => (
+                  <PersonCard
+                    key={
+                      complainant.complainant_id
+                    }
+                    name={complainant.name}
+                    contact={complainant.contact}
+                    relationship={
+                      complainant.relationship
+                    }
+                    type={complainant.type}
+                    address={complainant.address}
+                    statement={
+                      complainant.statement
+                    }
+                  />
+                )
+              )}
+
+            </div>
+          )}
+
+        </Section>
+
+        {/* ================================================= */}
+        {/* VICTIMS */}
+        {/* ================================================= */}
+
+        <Section
+          label="Victims"
+          title="Victim details"
+          icon={<Users size={18} />}
+        >
+
+          {data.victims.length === 0 ? (
+            <EmptySection text="No victim details available." />
+          ) : (
+            <div className="grid gap-5 lg:grid-cols-2">
+
+              {data.victims.map((victim) => (
+                <PersonCard
+                  key={victim.victim_id}
+                  name={victim.name}
+                  contact={victim.contact}
+                  relationship={
+                    victim.relationship
+                  }
+                  type={victim.type}
+                  address={victim.address}
+                  description={
+                    victim.description
+                  }
+                  statement={victim.statement}
+                  photoUrl={victim.photo_url}
+                />
+              ))}
+
+            </div>
+          )}
+
+        </Section>
+
+        {/* ================================================= */}
+        {/* SUSPECTS */}
+        {/* ================================================= */}
+
+        <Section
+          label="Suspects"
+          title="Suspect details"
+          icon={<Users size={18} />}
+        >
+
+          {data.suspects.length === 0 ? (
+            <EmptySection text="No suspect details available." />
+          ) : (
+            <div className="grid gap-5 lg:grid-cols-2">
+
+              {data.suspects.map((suspect) => (
+                <PersonCard
+                  key={suspect.suspect_id}
+                  name={
+                    suspect.name ||
+                    "Unknown suspect"
+                  }
+                  contact={suspect.contact}
+                  type={suspect.type}
+                  address={suspect.address}
+                  description={
+                    suspect.description
+                  }
+                  status={suspect.status}
+                  photoUrl={suspect.photo_url}
+                />
+              ))}
+
+            </div>
+          )}
+
+        </Section>
+
+        {/* ================================================= */}
+        {/* EVIDENCE */}
+        {/* ================================================= */}
+
+        <Section
+          label="Evidence"
+          title="Complaint evidence"
+          icon={<FileText size={18} />}
+        >
+
+          {data.evidence.length === 0 ? (
+            <EmptySection text="No evidence uploaded for this complaint." />
+          ) : (
+            <div className="grid gap-4 lg:grid-cols-2">
+
+              {data.evidence.map((item) => (
+                <EvidenceCard
+                  key={item.evidence_id}
+                  evidence={item}
+                />
+              ))}
+
+            </div>
+          )}
+
+        </Section>
 
       </div>
     </div>
   );
 }
+

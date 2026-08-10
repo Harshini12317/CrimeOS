@@ -1,7 +1,15 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from pydantic import BaseModel
+from uuid import uuid4
 
+from models.case import Case
 from database.db import get_db
+from models.complainant import Complainant
+from models.victim import Victim
+from models.suspect import Suspect
+from models.evidence import Evidence
+from models.user import User, Role
 
 from app.schemas.complaint import (
     ComplaintCreate,
@@ -20,7 +28,33 @@ router = APIRouter(
     prefix="/api/complaints",
     tags=["Complaints"],
 )
+class AssignCaseRequest(BaseModel):
+    officer_id: str
 
+
+@router.get("/io")
+def get_investigation_officers(
+    db: Session = Depends(get_db),
+):
+    officers = (
+        db.query(User)
+        .filter(
+            User.role == Role.IO,
+            User.is_active == True,
+        )
+        .order_by(User.name.asc())
+        .all()
+    )
+
+    return [
+        {
+            "id": officer.id,
+            "name": officer.name,
+            "email": officer.email,
+            "role": officer.role.value,
+        }
+        for officer in officers
+    ]
 
 # ============================================================
 # GET ALL CRIME CATEGORIES
@@ -105,15 +139,79 @@ def register_complaint(
             detail="Failed to register complaint.",
         )
 
-
-@router.get(
-    "/{complaint_id}",
-    response_model=ComplaintResponse,
-)
-def get_complaint(
-    complaint_id: str,
+@router.get("")
+def get_all_complaints(
     db: Session = Depends(get_db),
 ):
+    complaints = (
+        db.query(Complaint)
+        .order_by(
+            Complaint.created_at.desc()
+        )
+        .all()
+    )
+
+    return [
+        {
+            "complaint_id": c.complaint_id,
+            "complaint_number": c.complaint_number,
+            "complaint_type": c.complaint_type,
+            "crime_category": c.crime_category,
+            "crime_subcategory": c.crime_subcategory,
+            "priority": c.priority,
+            "incident_date": c.incident_date,
+            "incident_time": c.incident_time,
+            "location": c.location,
+            "description": c.description,
+            "status": c.status,
+            "created_at": c.created_at,
+        }
+        for c in complaints
+    ]
+
+# ============================================================
+# GET ACTIVE INVESTIGATION OFFICERS
+# ============================================================
+
+@router.get("/io")
+def get_investigation_officers(
+    db: Session = Depends(get_db),
+):
+    officers = (
+        db.query(User)
+        .filter(
+            User.role == Role.IO,
+            User.is_active == True,
+        )
+        .order_by(User.name.asc())
+        .all()
+    )
+
+    return [
+        {
+            "id": officer.id,
+            "name": officer.name,
+            "email": officer.email,
+            "role": officer.role.value,
+        }
+        for officer in officers
+    ]
+
+# ============================================================
+# ASSIGN COMPLAINT AS CASE
+# ============================================================
+
+@router.post("/{complaint_id}/assign")
+def assign_complaint(
+    complaint_id: str,
+    request: AssignCaseRequest,
+    db: Session = Depends(get_db),
+):
+
+    # --------------------------------------------------------
+    # 1. Find complaint
+    # --------------------------------------------------------
+
     complaint = (
         db.query(Complaint)
         .filter(
@@ -128,4 +226,279 @@ def get_complaint(
             detail="Complaint not found.",
         )
 
-    return complaint
+    # --------------------------------------------------------
+    # 2. Check whether this complaint is already a case
+    # --------------------------------------------------------
+
+    existing_case = (
+        db.query(Case)
+        .filter(
+            Case.complaint_id == complaint_id
+        )
+        .first()
+    )
+
+    if existing_case is not None:
+        raise HTTPException(
+            status_code=409,
+            detail="This complaint has already been assigned as a case.",
+        )
+
+    # --------------------------------------------------------
+    # 3. Find selected IO
+    # --------------------------------------------------------
+
+    officer = (
+        db.query(User)
+        .filter(
+            User.id == request.officer_id,
+            User.role == Role.IO,
+            User.is_active == True,
+        )
+        .first()
+    )
+
+    if officer is None:
+        raise HTTPException(
+            status_code=400,
+            detail="Selected Investigation Officer is invalid or inactive.",
+        )
+
+    # --------------------------------------------------------
+    # 4. Create Case
+    # --------------------------------------------------------
+
+    case = Case(
+        case_id=str(uuid4()),
+
+        complaint_id=complaint.complaint_id,
+
+        assigned_officer_id=(officer.id),
+
+        case_number=complaint.complaint_number,
+
+        title=(
+            f"{complaint.crime_category}"
+            if complaint.crime_category
+            else "New Investigation Case"
+        ),
+
+        status="Open",
+
+        priority=complaint.priority,
+
+        description=complaint.description,
+
+        # incident_datetime=complaint.incident_datetime,
+
+        current_stage="Assigned",
+    )
+
+    db.add(case)
+
+    # --------------------------------------------------------
+    # 5. Update complaint status
+    # --------------------------------------------------------
+
+    complaint.status = "Assigned"
+
+    # --------------------------------------------------------
+    # 6. Save both changes
+    # --------------------------------------------------------
+
+    try:
+
+        db.commit()
+
+        db.refresh(case)
+
+    except Exception as e:
+
+        db.rollback()
+
+        print(
+            "CASE ASSIGNMENT ERROR:",
+            repr(e),
+        )
+
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to assign complaint as case.",
+        )
+
+    # --------------------------------------------------------
+    # 7. Return response
+    # --------------------------------------------------------
+
+    return {
+        "message": "Case assigned successfully.",
+
+        "case": {
+            "case_id": case.case_id,
+            "case_number": case.case_number,
+            "complaint_id": case.complaint_id,
+            "assigned_officer_id": case.assigned_officer_id,
+            "status": case.status,
+            "priority": case.priority,
+            "current_stage": case.current_stage,
+        },
+
+        "officer": {
+            "id": officer.id,
+            "name": officer.name,
+            "email": officer.email,
+        },
+    }
+
+@router.get("/{complaint_id}")
+def get_complaint(
+    complaint_id: str,
+    db: Session = Depends(get_db),
+):
+    # ---------------------------------------------------------
+    # Get complaint
+    # ---------------------------------------------------------
+
+    complaint = (
+        db.query(Complaint)
+        .filter(
+            Complaint.complaint_id == complaint_id
+        )
+        .first()
+    )
+
+    if complaint is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Complaint not found.",
+        )
+
+    # ---------------------------------------------------------
+    # Get complainants
+    # ---------------------------------------------------------
+
+    complainants = (
+        db.query(Complainant)
+        .filter(
+            Complainant.complaint_id == complaint_id
+        )
+        .all()
+    )
+
+    # ---------------------------------------------------------
+    # Get victims
+    # ---------------------------------------------------------
+
+    victims = (
+        db.query(Victim)
+        .filter(
+            Victim.complaint_id == complaint_id
+        )
+        .all()
+    )
+
+    # ---------------------------------------------------------
+    # Get suspects
+    # ---------------------------------------------------------
+
+    suspects = (
+        db.query(Suspect)
+        .filter(
+            Suspect.complaint_id == complaint_id
+        )
+        .all()
+    )
+
+    # ---------------------------------------------------------
+    # Get evidence
+    # ---------------------------------------------------------
+
+    evidence = (
+        db.query(Evidence)
+        .filter(
+            Evidence.complaint_id == complaint_id
+        )
+        .all()
+    )
+
+    # ---------------------------------------------------------
+    # Convert ORM objects to dictionaries
+    # ---------------------------------------------------------
+
+    return {
+        "complaint": {
+            "complaint_id": complaint.complaint_id,
+            "complaint_number": complaint.complaint_number,
+            "complaint_type": complaint.complaint_type,
+            "crime_category": complaint.crime_category,
+            "crime_subcategory": complaint.crime_subcategory,
+            "priority": complaint.priority,
+            "incident_date": complaint.incident_date,
+            "incident_time": complaint.incident_time,
+            "location": complaint.location,
+            "description": complaint.description,
+            "ai_summary": complaint.ai_summary,
+            "officer_notes": complaint.officer_notes,
+            "status": complaint.status,
+            "created_at": complaint.created_at,
+            "updated_at": complaint.updated_at,
+        },
+
+        "complainants": [
+            {
+                "complainant_id": c.complainant_id,
+                "name": c.name,
+                "contact": c.contact,
+                "relationship": c.relationship,
+                "statement": c.statement,
+                "type": c.type,
+                "address": c.address,
+            }
+            for c in complainants
+        ],
+
+        "victims": [
+            {
+                "victim_id": v.victim_id,
+                "name": v.name,
+                "contact": v.contact,
+                "relationship": v.relationship,
+                "statement": v.statement,
+                "type": v.type,
+                "description": v.description,
+                "address": v.address,
+                "photo_url": v.photo_url,
+            }
+            for v in victims
+        ],
+
+        "suspects": [
+            {
+                "suspect_id": s.suspect_id,
+                "name": s.name,
+                "contact": s.contact,
+                "description": s.description,
+                "status": s.status,
+                "type": s.type,
+                "address": s.address,
+                "photo_url": s.photo_url,
+            }
+            for s in suspects
+        ],
+
+        "evidence": [
+            {
+                "evidence_id": e.evidence_id,
+                "evidence_type": e.evidence_type,
+                "file_name": e.file_name,
+                "file_type": e.file_type,
+                "cloudinary_url": e.cloudinary_url,
+                "cloudinary_public_id": e.cloudinary_public_id,
+                "extracted_text": e.extracted_text,
+                "summary": e.summary,
+                "extraction_data": e.extraction_data,
+                "created_at": e.created_at,
+            }
+            for e in evidence
+        ],
+    }

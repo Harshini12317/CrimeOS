@@ -7,7 +7,7 @@ const ROLE_ROUTES: Record<string, string[]> = {
   "/dashboard/legal-advisor": ["LEGAL_ADVISOR"],
 
   "/complaints/register": ["SHO"],
-  "/complaints": ["SHO", "IO"],
+  "/complaints": ["SHO"],
   "/complaints/assign": ["SHO"],
 
   "/cases": ["IO"],

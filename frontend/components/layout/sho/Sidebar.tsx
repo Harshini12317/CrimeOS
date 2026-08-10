@@ -29,11 +29,7 @@ const menu = [
     href: "/complaints",        // List of complaints
     icon: <FaClipboardList />,
   },
-  {
-    title: "Case Assignment",
-    href: "/assign-case",      // assign IO, set priority, view assigned cases
-    icon: <FaUserFriends />,
-  },
+  
   {
     title: "Case Monitoring",
     href: "/cases",            // investigation progress, pending approvals, case timeline, officer workload
