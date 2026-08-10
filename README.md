@@ -11,49 +11,86 @@ The system brings together a modern web frontend client and a powerful FastAPI s
 The diagram below outlines the full lifecycle of a complaint inside CrimeOS: from evidence uploading on the frontend, to AI processing on the backend, and automatic document distribution.
 
 ```mermaid
-graph TD
-    %% Frontend Interaction
-    subgraph Frontend Client (React/Next.js)
-        UI[CrimeOS Portal UI] -->|1. File Upload / Event| APIReq[FastAPI Request]
-        UI -->|2. Search Queries| SearchReq[Semantic Search Query]
-        UI -->|3. Save / Action| ExecReq[Execute Actions]
+graph TB
+    %% Frontend Client Layer
+    subgraph Frontend [Frontend Portal (React / Next.js on Port 3000)]
+        UI[CrimeOS Core Dashboard]
+        UploadUI[Upload & OCR Dashboard]
+        SearchUI[Legal Search Console]
+        DraftUI[FIR & Notice Studio]
+        UI --> UploadUI
+        UI --> SearchUI
+        UI --> DraftUI
     end
 
-    %% Ingestion Section
-    subgraph Ingestion & Fusion (FastAPI Backend)
-        APIReq --> AudioProc[Audio Ingestion <br> Whisper AI]
-        APIReq --> DocProc[PDF / Image Ingestion <br> Pytesseract / PDFPlumber]
+    %% FastAPI Gateway Layer
+    subgraph Backend [FastAPI Backend Service (Port 8000)]
+        Router[FastAPI Route Handler & CORS Middlewares]
         
-        AudioProc & DocProc --> ExtractedJSON[Extracted Evidence JSON]
-        ExtractedJSON --> MasterAgent[Combo Master Agent <br> Gemini 3.1 Flash-Lite]
+        %% Ingestion Pipeline
+        subgraph IngestionEngine [Evidence Ingestion Pipeline]
+            Whisper[Whisper Audio Transcriber]
+            OCR[Tesseract OCR & PDFPlumber]
+            GeminiExtract[Gemini 3.1 Flash-Lite Extraction]
+            MasterAgent[Combo Master Agent]
+        end
         
-        MasterAgent -->|Merge & Resolve Entities| MergedJSON[Merged Case File JSON]
+        %% Intelligence Pipeline
+        subgraph LegalIntelligence [AI Legal Intelligence Engine]
+            HF_Embed[Hugging Face E5 Embeddings]
+            pgvector[pgvector Cosine Search]
+            Crosswalk[Old-New Act Crosswalk Mapping]
+            Groq_Synth[Groq AI Synthesis]
+        end
+        
+        %% Output Generators
+        subgraph DocGen [Document Generation & Delivery]
+            WordGen[python-docx FIR Compiler]
+            PDFGen[ReportLab PDF Engine]
+        end
     end
 
-    %% Database & Intelligence Section
-    subgraph Storage & Legal Intelligence
-        MergedJSON --> DB[(Neon PostgreSQL + pgvector)]
-        
-        %% Vector Search
-        SearchReq -->|1024-d Embedding| QueryVec[multilingual-e5-large]
-        QueryVec -->|Cosine Distance SQL| VectorMatch{pgvector Semantic Match}
-        
-        VectorMatch -->|Legal References| LegalSec[Legal Sections <br> BNS / BNSS / BSA]
-        VectorMatch -->|Bail judgments| LandmarkCases[Landmark Cases <br> SnehaDeshmukh/IndianBailJudgments]
-        
-        LegalSec -->|Crosswalk Mapping| LegalMapping[BNS ↔ IPC <br> BNSS ↔ CrPC <br> BSA ↔ IEA]
+    %% Data Infrastructure Layer
+    subgraph Infrastructure [Data & Cloud Infrastructure]
+        DB[(Neon Serverless PostgreSQL)]
+        Cloudinary[Cloudinary CDN]
+        SMTP[SMTP Email Server]
     end
 
-    %% Execution and Outputs
-    subgraph Document Automation & Delivery
-        ExecReq -->|FIR Draft Request| WordGen[FIR Word Compiler <br> python-docx]
-        ExecReq -->|Legal Request Trigger| PDFGen[ReportLab PDF Engine]
-        
-        WordGen -->|.docx download| UI
-        PDFGen -->|Upload| Cloudinary[Cloudinary CDN]
-        Cloudinary -->|Secure URL| EmailService[aiosmtplib Email Service]
-        EmailService -->|SMTP Email| Receiver[Recipient Agencies <br> Banks, ISPs, Cellular Providers]
-    end
+    %% Communications & HTTP Actions
+    UploadUI -->|POST /api/v1/audio/upload| Router
+    UploadUI -->|POST /api/v1/pdf/upload| Router
+    SearchUI -->|GET /api/legal-library/search| Router
+    DraftUI -->|POST /api/fir-drafts| Router
+    DraftUI -->|POST /api/legal-requests| Router
+
+    Router --> Whisper
+    Router --> OCR
+    Router --> GeminiExtract
+    Router --> MasterAgent
+    Router --> HF_Embed
+    Router --> pgvector
+    Router --> Crosswalk
+    Router --> Groq_Synth
+    Router --> WordGen
+    Router --> PDFGen
+
+    %% Internal Data Flows
+    Whisper -->|Raw Transcript| GeminiExtract
+    OCR -->|Raw Text| GeminiExtract
+    GeminiExtract -->|Structured Evidence| MasterAgent
+    MasterAgent -->|Merge & Entity Resolution| DB
+    
+    HF_Embed -->|1024-d Embedding Query| pgvector
+    pgvector -->|Search Results| Crosswalk
+    Crosswalk -->|Old-New Reference Maps| Groq_Synth
+    Groq_Synth -->|SOPs & Leads Text| WordGen
+    
+    PDFGen -->|Notice PDF File| Cloudinary
+    Cloudinary -->|Save CDN Link| DB
+    Cloudinary -->|Trigger Dispatch| SMTP
+    SMTP -->|Send SMTP Email| Recipient[Recipient Agency / Recipient]
+    WordGen -->|.docx file download| DraftUI
 ```
 
 ---
