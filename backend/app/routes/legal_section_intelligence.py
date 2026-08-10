@@ -16,6 +16,8 @@ from models.legal_sections import LegalSection
 from models.landmarks import Landmark
 from models.legal_section_mappings import LegalSectionMapping
 from investigation.embedding import embed_query
+from models.case_summary import CaseSummary
+from investigation.case_summary_generator import generate_case_summary
 
 router = APIRouter(prefix="/api/complaints", tags=["legal-section-intelligence"])
 
@@ -290,28 +292,69 @@ def _serialize_judgment(judgment: Landmark, reason: str) -> dict:
 def analyze_legal_sections(complaint_id: str, payload: AnalyzeRequest):
     db = SessionLocal()
     try:
+        complaint = (
+            db.query(Complaint)
+            .filter(Complaint.complaint_id == complaint_id)
+            .first()
+        )
+        if not complaint:
+            raise HTTPException(status_code=404, detail="Complaint not found")
+ 
         case_summary = payload.case_summary
-
-        if not case_summary:
-            row = (
-                db.query(Complaint.complaint_id, Complaint.description)
-                .filter(Complaint.complaint_id == complaint_id)
-                .first()
-            )
-            if not row:
-                raise HTTPException(status_code=404, detail="Complaint not found")
-            case_summary = row.description
-
+ 
+        if case_summary and case_summary.strip():
+            # Officer explicitly supplied/edited a summary (e.g. via the
+            # "Re-analyze" textarea) — persist it as a manual override so
+            # any future auto-regeneration job leaves it alone.
+            existing = db.get(CaseSummary, complaint_id)
+            if existing:
+                existing.summary = case_summary.strip()
+                existing.is_manual_override = True
+                existing.model_used = None
+            else:
+                db.add(CaseSummary(
+                    complaint_id=complaint_id,
+                    summary=case_summary.strip(),
+                    is_manual_override=True,
+                    model_used=None,
+                ))
+            db.commit()
+ 
+        else:
+            # No summary passed — check for a stored one first.
+            existing = db.get(CaseSummary, complaint_id)
+            if existing:
+                case_summary = existing.summary
+            else:
+                # Nothing stored yet — generate one now (lazy generation).
+                generated = generate_case_summary(complaint)
+ 
+                if generated:
+                    case_summary = generated
+                    db.add(CaseSummary(
+                        complaint_id=complaint_id,
+                        summary=generated,
+                        model_used=GROQ_MODEL,
+                        is_manual_override=False,
+                    ))
+                    db.commit()
+                else:
+                    # LLM generation failed — fall back to raw description
+                    # rather than blocking the officer with a 422. We don't
+                    # persist this as a CaseSummary row, so a later request
+                    # will retry generation instead of reusing a bad fallback.
+                    case_summary = complaint.description
+ 
         if not case_summary or not case_summary.strip():
             raise HTTPException(
                 status_code=422,
                 detail="No case summary available for this complaint. "
                        "Pass `case_summary` in the request body.",
             )
-
+ 
         sections, judgments = _retrieve_candidates(db, case_summary)
         ranked_sections, ranked_judgments = _rerank_with_llm(case_summary, sections, judgments)
-
+ 
         return {
             "complaint_id": complaint_id,
             "case_summary": case_summary,
@@ -328,3 +371,4 @@ def analyze_legal_sections(complaint_id: str, payload: AnalyzeRequest):
         )
     finally:
         db.close()
+ 

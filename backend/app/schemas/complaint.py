@@ -44,6 +44,11 @@ class ComplaintCreate(BaseModel):
     ai_summary: Optional[str] = None
 
     officer_notes: Optional[str] = None
+    source_type: Optional[str] = None
+    detected_languages: Optional[str] = None
+    raw_extracted_text: Optional[str] = None
+    translated_text: Optional[str] = None
+    needs_human_review: bool = False
 
 
 class ComplaintResponse(BaseModel):
@@ -77,3 +82,8 @@ class ComplaintResponse(BaseModel):
     model_config = ConfigDict(
         from_attributes=True
     )
+    source_type: Optional[str] = None
+    detected_languages: Optional[str] = None
+    raw_extracted_text: Optional[str] = None
+    translated_text: Optional[str] = None
+    needs_human_review: bool = False

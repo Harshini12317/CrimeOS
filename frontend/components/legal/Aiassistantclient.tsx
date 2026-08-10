@@ -1,11 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useRouter } from "next/navigation";
 import LegalCaseList from "./LegalCaseList";
-import LegalSuggestionModal from "@/components/investigation/LegalSuggestionModal";
 
 export default function AiAssistantClient() {
-  const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
+  const router = useRouter();
 
   return (
     <div className="space-y-6">
@@ -17,14 +16,9 @@ export default function AiAssistantClient() {
         </p>
       </div>
 
-      <LegalCaseList onSuggest={setSelectedCaseId} />
-
-      {selectedCaseId && (
-        <LegalSuggestionModal
-          caseId={selectedCaseId}
-          onClose={() => setSelectedCaseId(null)}
-        />
-      )}
+      <LegalCaseList
+        onSuggest={(caseId) => router.push(`/investigation/ai-assistant/${caseId}`)}
+      />
     </div>
   );
 }
