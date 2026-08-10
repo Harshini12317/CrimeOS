@@ -15,6 +15,14 @@ export interface RecommendedSection {
   [key: string]: unknown;
 }
 
+export interface CaseLawRef {
+  case_title?: string;
+  court?: string;
+  bail_outcome?: string;
+  relevance_reason?: string;
+  [key: string]: unknown;
+}
+
 export interface IOLegalRequest {
   id: string;
   caseId: string | null;
@@ -30,7 +38,7 @@ export interface IOLegalRequest {
   modelUsed: string | null;
   suggestedPath: string[];
   recommendedSections: RecommendedSection[];
-  caseLawRefs: string[];
+  caseLawRefs: CaseLawRef[];
   officerFeedback: OfficerFeedback;
   officerFeedbackNotes: string | null;
 }
@@ -73,6 +81,7 @@ function StatusBadge({ feedback }: { feedback: OfficerFeedback }) {
   );
 }
 
+
 function renderSection(s: RecommendedSection, i: number) {
   // Supports both shapes seen across the app: {code, act, title} and
   // {act_code, section_number, title, relevance_reason}
@@ -84,6 +93,17 @@ function renderSection(s: RecommendedSection, i: number) {
     <li key={i}>
       {label}
       {s.relevance_reason && <div className="text-xs text-ink-500">{s.relevance_reason}</div>}
+    </li>
+  );
+}
+
+function renderCaseLawRef(c: CaseLawRef, i: number) {
+  return (
+    <li key={i}>
+      <span className="font-medium">{c.case_title ?? "Untitled case"}</span>
+      {c.court && <span className="text-ink-500"> — {c.court}</span>}
+      {c.bail_outcome && <div className="text-xs text-ink-600">Outcome: {c.bail_outcome}</div>}
+      {c.relevance_reason && <div className="text-xs text-ink-500">{c.relevance_reason}</div>}
     </li>
   );
 }
@@ -134,7 +154,7 @@ function RequestCard({ req }: { req: IOLegalRequest }) {
         </p>
       )}
 
-      <button
+      <button 
         onClick={() => setExpanded((v) => !v)}
         className="mt-3 text-xs font-medium text-maroon-700 hover:text-maroon-900"
       >
@@ -166,10 +186,8 @@ function RequestCard({ req }: { req: IOLegalRequest }) {
           {!!req.caseLawRefs?.length && (
             <div>
               <h4 className="text-sm font-medium text-ink-900">Case law references</h4>
-              <ul className="mt-1 list-inside list-disc space-y-1 text-sm text-ink-600">
-                {req.caseLawRefs.map((c, i) => (
-                  <li key={i}>{c}</li>
-                ))}
+              <ul className="mt-1 space-y-1 text-sm text-ink-600">
+                {req.caseLawRefs.map((c, i) => renderCaseLawRef(c, i))}
               </ul>
             </div>
           )}

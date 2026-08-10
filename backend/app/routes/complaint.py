@@ -1,9 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+
 from pydantic import BaseModel
 from uuid import uuid4
 
 from models.case import Case
+from typing import Optional, Any, Dict
+from pydantic import BaseModel
+
 from database.db import get_db
 from models.complainant import Complainant
 from models.victim import Victim
@@ -17,7 +21,8 @@ from app.schemas.complaint import (
 )
 
 from app.services.complaint.complaint_service import create_complaint
-
+from app.services.ingestion.translation_service import translate_to_english
+from app.services.complaint.summary_from_extraction import generate_summary_from_extraction
 from app.services.complaint.complaint_categories import (
     CRIME_CATEGORIES,
 )
@@ -502,3 +507,90 @@ def get_complaint(
             for e in evidence
         ],
     }
+
+    return complaint
+
+# --- New request schema (can live in app/schemas/complaint.py instead if preferred) ---
+ 
+class ComplaintFromExtraction(BaseModel):
+    # Fields the officer still needs to confirm/select — extraction can't
+    # infer these (crime categorization is a legal judgment call, not a
+    # text-extraction task).
+    complaint_type: str
+    crime_category: str
+    crime_subcategory: str
+    priority: str = "Medium"
+    officer_notes: Optional[str] = None
+ 
+    # Raw output from /upload/ on audio.py, pdf.py, or image.py, or the
+    # merged result from combo.py if multiple pieces of evidence were combined.
+    extraction: Dict[str, Any]
+ 
+    # Which ingestion route produced `extraction`
+    source_type: str  # 'audio' | 'pdf' | 'image'
+ 
+ 
+# --- New route ---
+ 
+@router.post(
+    "/from-extraction",
+    response_model=ComplaintResponse,
+    status_code=201,
+)
+def register_complaint_from_extraction(
+    data: ComplaintFromExtraction,
+    db: Session = Depends(get_db),
+):
+    valid_subcategories = CRIME_CATEGORIES.get(data.crime_category)
+    if valid_subcategories is None:
+        raise HTTPException(status_code=400, detail=f"Invalid crime category: '{data.crime_category}'.")
+    if data.crime_subcategory not in valid_subcategories:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid subcategory '{data.crime_subcategory}' for category '{data.crime_category}'.",
+        )
+ 
+    sections = data.extraction.get("sections", {})
+    raw_text = sections.get("narrative_text", "") or ""
+    key_facts = data.extraction.get("key_facts", [])
+    doc_meta = data.extraction.get("document_meta", {})
+    confidence = data.extraction.get("confidence_flags", {})
+ 
+    if not raw_text.strip():
+        raise HTTPException(
+            status_code=422,
+            detail="Extraction contains no narrative text to register a complaint from.",
+        )
+ 
+    # Translate, then summarize the translation (not the raw text) so the
+    # summary is always in consistent English regardless of source language.
+    translated_text = translate_to_english(raw_text)
+    ai_summary = generate_summary_from_extraction(
+        translated_text or raw_text, key_facts
+    )
+ 
+    complaint_data = ComplaintCreate(
+        complaint_type=data.complaint_type,
+        crime_category=data.crime_category,
+        crime_subcategory=data.crime_subcategory,
+        priority=data.priority,
+        # Prefer translated text as the working description so downstream
+        # features (legal-section analysis, etc.) always see clean English,
+        # while raw_extracted_text preserves the original for the officer.
+        description=translated_text or raw_text,
+        ai_summary=ai_summary,
+        officer_notes=data.officer_notes,
+        source_type=data.source_type,
+        detected_languages=",".join(doc_meta.get("languages_detected", [])) or None,
+        raw_extracted_text=raw_text,
+        translated_text=translated_text,
+        needs_human_review=bool(confidence.get("needs_human_review", False)),
+    )
+ 
+    try:
+        return create_complaint(db=db, data=complaint_data)
+    except Exception as e:
+        db.rollback()
+        print("ERROR WHILE REGISTERING COMPLAINT FROM EXTRACTION:", repr(e))
+        raise HTTPException(status_code=500, detail="Failed to register complaint.")
+ 

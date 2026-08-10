@@ -3,6 +3,7 @@
 import { use, useCallback, useEffect, useState } from 'react';
 import Sidebar from '@/components/layout/legal/Sidebar';
 import DashboardLayout from '@/app/dashboard/layout';
+import IOSidebar from '@/components/layout/io/Sidebar';
 
 // ---------- Types ----------
 

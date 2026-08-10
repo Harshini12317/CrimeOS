@@ -92,6 +92,12 @@ def create_complaint(
         ai_summary=data.ai_summary,
         officer_notes=data.officer_notes,
         status="Registered",
+        # new AI-extraction fields
+        source_type=data.source_type,
+        detected_languages=data.detected_languages,
+        raw_extracted_text=data.raw_extracted_text,
+        translated_text=data.translated_text,
+        needs_human_review=data.needs_human_review,
     )
 
     # Add object to current transaction
