@@ -9,15 +9,17 @@ export default function AiAssistantClient() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-lg font-semibold text-ink-900">AI Investigation Assistant</h1>
+        <h1 className="text-lg font-semibold text-ink-900">Investigation Assistant</h1>
         <p className="mt-1 text-sm text-ink-600">
-          Pick a case below to get an AI-suggested investigation path, relevant
-          legal sections, and step-by-step guidance — no need to enter a case ID.
+          Select a case to review evidence, prepare investigation steps, or get legal guidance.
         </p>
       </div>
 
       <LegalCaseList
-        onSuggest={(caseId) => router.push(`/investigation/ai-assistant/${caseId}`)}
+        onSuggest={(caseId, complaintId) => {
+          const query = complaintId ? `?complaintId=${encodeURIComponent(complaintId)}` : "";
+          router.push(`/investigation/ai-assistant/${caseId}${query}`);
+        }}
       />
     </div>
   );

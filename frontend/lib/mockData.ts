@@ -1,12 +1,40 @@
 export interface CaseInfo {
   caseId: string;
   firNo: string;
+  title?: string;
   officerName: string;
   policeStation: string;
   crime_category: string;
   priority: 'High' | 'Medium' | 'Low';
   status: string;
   dateRegistered: string;
+}
+
+// A single row in the case list panel — deliberately kept to fields a
+// non-technical viewer (e.g. a supervising officer) can read at a glance.
+export interface CaseListItem {
+  caseId: string;
+  title: string;
+  status: string;
+  priority: 'High' | 'Medium' | 'Low';
+  date: string;
+}
+
+export interface LegalSectionRef {
+  id: string;
+  act: string;
+  section: string;
+  title: string;
+  reason: string;
+  category?: string;
+}
+
+export interface CaseLawReference {
+  id: string;
+  caseTitle: string;
+  court?: string;
+  date?: string;
+  summary?: string;
 }
 
 export interface AISummary {
@@ -77,6 +105,8 @@ export interface AuditEvent {
 export interface CaseSummaryReport {
   info: CaseInfo;
   aiSummary: AISummary;
+  legalSections: LegalSectionRef[];
+  caseLawReferences: CaseLawReference[];
   timeline: TimelineEvent[];
   analytics: ResponseAnalytics;
   evidence: EvidenceItem[];
@@ -229,6 +259,7 @@ export const MOCK_CASE_SUMMARIES: Record<string, CaseSummaryReport> = {
     info: {
       caseId: 'FIR-2026-041',
       firNo: 'FIR-2026-041',
+      title: 'UPI QR Code Fraud - Ananya Patel',
       officerName: 'SI Vikram Rathore',
       policeStation: 'Sector 4 Cyber Cell',
       crime_category: 'UPI / Net-banking Fraud',
@@ -278,6 +309,13 @@ export const MOCK_CASE_SUMMARIES: Record<string, CaseSummaryReport> = {
         details: 'WhatsApp nodal response provided registered device ID: SM-A505F, IP logs confirm connection from Dhanbad region.'
       }
     },
+    legalSections: [
+      { id: 'ls-1', act: 'BNS', section: '318(4)', title: 'Cheating', reason: 'Complainant induced to scan a fraudulent QR code, matching cheating-by-deception elements.', category: 'Cyber Fraud' },
+      { id: 'ls-2', act: 'IT Act', section: '66D', title: 'Cheating by personation using computer resource', reason: 'Fraud executed via UPI app impersonating a cash-prize payment request.', category: 'Cyber Fraud' }
+    ],
+    caseLawReferences: [
+      { id: 'clr-1', caseTitle: 'State of Karnataka v. Ramesh (Mule Account Fraud)', court: 'Karnataka HC', date: '2023-11-02', summary: 'Held that mule account holders receiving proceeds of UPI fraud are liable as abettors even without direct contact with the victim.' }
+    ],
     evidence: [
       { id: 'ev-1', name: 'Victim_Bank_Statement.pdf', type: 'Bank Statement', size: '2.4 MB', uploadedAt: '2026-06-15' },
       { id: 'ev-2', name: 'WhatsApp_Chat_Screenshot.png', type: 'Screenshot', size: '840 KB', uploadedAt: '2026-06-15' },
@@ -308,6 +346,7 @@ export const MOCK_CASE_SUMMARIES: Record<string, CaseSummaryReport> = {
     info: {
       caseId: 'FIR-2026-042',
       firNo: 'FIR-2026-042',
+      title: 'Residential Burglary - Rahul Sharma',
       officerName: 'SI Vikram Rathore',
       policeStation: 'Sector 4 Cyber Cell',
       crime_category: 'Conventional - Theft',
@@ -353,6 +392,10 @@ export const MOCK_CASE_SUMMARIES: Record<string, CaseSummaryReport> = {
         details: 'Awaiting device MAC address login logs from Google Account security telemetry.'
       }
     },
+    legalSections: [
+      { id: 'ls-3', act: 'BNS', section: '305(a)', title: 'Theft in a dwelling house', reason: 'Entry gained through the balcony door of the complainant\u2019s residence while unoccupied.', category: 'Property Offence' }
+    ],
+    caseLawReferences: [],
     evidence: [
       { id: 'ev-5', name: 'Scene_Of_Crime_Photos.zip', type: 'Image', size: '12 MB', uploadedAt: '2026-06-14' },
       { id: 'ev-6', name: 'CCTV_Entry_Exit.mp4', type: 'Device Image', size: '45 MB', uploadedAt: '2026-06-14' }
@@ -376,6 +419,7 @@ export const MOCK_CASE_SUMMARIES: Record<string, CaseSummaryReport> = {
     info: {
       caseId: 'FIR-2026-039',
       firNo: 'FIR-2026-039',
+      title: 'Electricity Bill Phishing - Vikram Singh',
       officerName: 'SI Vikram Rathore',
       policeStation: 'Sector 4 Cyber Cell',
       crime_category: 'Phishing / Fake Links',
@@ -421,6 +465,13 @@ export const MOCK_CASE_SUMMARIES: Record<string, CaseSummaryReport> = {
         details: 'Request to SMS Gateway Aggregator pending.'
       }
     },
+    legalSections: [
+      { id: 'ls-4', act: 'BNS', section: '319', title: 'Cheating by personation', reason: 'Fraudster impersonated the electricity board via a spoofed SMS and phishing link.', category: 'Cyber Fraud' },
+      { id: 'ls-5', act: 'IT Act', section: '66C', title: 'Identity theft', reason: 'Victim\u2019s net-banking credentials were captured through the phishing site.', category: 'Cyber Fraud' }
+    ],
+    caseLawReferences: [
+      { id: 'clr-2', caseTitle: 'National Cyber Cell v. Unknown (Domain Phishing)', court: 'Delhi HC', date: '2024-02-19', summary: 'Discussed jurisdiction and evidentiary standards for phishing domains hosted on foreign VPS infrastructure.' }
+    ],
     evidence: [
       { id: 'ev-7', name: 'SMS_Phishing_Screenshot.jpg', type: 'Screenshot', size: '1.1 MB', uploadedAt: '2026-06-10' },
       { id: 'ev-8', name: 'BoB_Transaction_Receipt.pdf', type: 'Bank Statement', size: '540 KB', uploadedAt: '2026-06-10' }
@@ -440,3 +491,13 @@ export const MOCK_CASE_SUMMARIES: Record<string, CaseSummaryReport> = {
     ]
   }
 };
+
+// Case list panel derived from the full mock reports — kept to the fields
+// a non-technical viewer needs: title, status, priority, date.
+export const MOCK_CASE_LIST: CaseListItem[] = Object.values(MOCK_CASE_SUMMARIES).map((r) => ({
+  caseId: r.info.caseId,
+  title: r.info.title || r.info.crime_category,
+  status: r.info.status,
+  priority: r.info.priority,
+  date: r.info.dateRegistered
+}));
