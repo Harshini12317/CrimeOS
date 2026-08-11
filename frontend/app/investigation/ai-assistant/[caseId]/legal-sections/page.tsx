@@ -121,60 +121,76 @@ export default function LegalSectionsPage({
   const [savingDraft, setSavingDraft] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
 
-  const runAnalysis = useCallback(
-    async (summaryOverride?: string) => {
-      if (!complaintId) return;
-      setError(null);
-      setLoading(true);
-      try {
-        const res = await fetch(`${API_BASE}/api/complaints/${complaintId}/legal-sections/analyze`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ case_summary: summaryOverride || null }),
-        });
+  // 1. Fetch existing analysis on component mount (Read-Only)
+const fetchExistingAnalysis = useCallback(async () => {
+  if (!complaintId) return;
+  setLoading(true);
+  setError(null);
 
-        if (res.status === 422) {
-          // Backend couldn't find a stored case summary — ask the officer to enter one.
-          setNeedsManualSummary(true);
-          setLoading(false);
-          return;
-        }
+  try {
+    const res = await fetch(`${API_BASE}/api/complaints/${complaintId}/legal-sections`, {
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
+    });
 
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error ?? data.detail ?? "Request failed.");
+    if (res.status === 404) {
+      // No existing analysis stored yet — offer manual entry or run initial analysis
+      setNeedsManualSummary(true);
+      setLoading(false);
+      return;
+    }
 
-        setResult(data);
-        setCaseSummaryDraft(data.case_summary ?? "");
-        setNeedsManualSummary(false);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error ?? data.detail ?? "Failed to load saved legal sections.");
 
-        setSelectedSectionIds((current) => {
-          const next = new Set<string>();
-          current.forEach((id) => {
-            if (data.sections.some((s: LegalSection) => s.id === id)) next.add(id);
-          });
-          return next;
-        });
-        setSelectedJudgmentIds((current) => {
-          const next = new Set<string>();
-          current.forEach((id) => {
-            if (data.judgments.some((j: LandmarkJudgment) => j.id === id)) next.add(id);
-          });
-          return next;
-        });
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Something went wrong.");
-      } finally {
+    setResult(data);
+    setCaseSummaryDraft(data.case_summary ?? "");
+    setNeedsManualSummary(false);
+  } catch (err) {
+    setError(err instanceof Error ? err.message : "Error loading saved data.");
+  } finally {
+    setLoading(false);
+  }
+}, [complaintId]);
+
+// 2. Re-analyze triggered ONLY by user action (Mutates/Updates DB Row)
+const runAnalysis = useCallback(
+  async (summaryOverride?: string) => {
+    if (!complaintId) return;
+    setError(null);
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/complaints/${complaintId}/legal-sections/analyze`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ case_summary: summaryOverride || null }),
+      });
+
+      if (res.status === 422) {
+        setNeedsManualSummary(true);
         setLoading(false);
+        return;
       }
-    },
-    [complaintId]
-  );
 
-  useEffect(() => {
-    if (complaintId) runAnalysis();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [complaintId]);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? data.detail ?? "Request failed.");
 
+      setResult(data);
+      setCaseSummaryDraft(data.case_summary ?? "");
+      setNeedsManualSummary(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong.");
+    } finally {
+      setLoading(false);
+    }
+  },
+  [complaintId]
+);
+
+// Run GET request on initial mount
+useEffect(() => {
+  if (complaintId) fetchExistingAnalysis();
+}, [complaintId, fetchExistingAnalysis]);
   function toggleSectionText(id: string) {
     setExpandedSections((prev) => {
       const next = new Set(prev);
@@ -267,7 +283,7 @@ export default function LegalSectionsPage({
         <Sidebar />
         <main className="flex-1 p-6 lg:p-8 max-w-6xl">
           <Link
-            href={`/investigation/ai-assistant/${caseId}`}
+            href={`/ai-assistant`}
             className="text-sm font-medium text-maroon-700 hover:text-maroon-900"
           >
             ← Back to Case Assistant
@@ -509,14 +525,13 @@ export default function LegalSectionsPage({
                     </p>
                   )}
                   <button
-                    type="button"
-                    onClick={() => runAnalysis(caseSummaryDraft)}
-                    disabled={loading || !caseSummaryDraft.trim()}
-                    className="mt-3 w-full rounded-md border border-gold-300 bg-white px-4 py-2 text-sm text-ink-900
-                               hover:bg-gold-50 disabled:opacity-60 transition-colors"
-                  >
-                    {loading ? "Re-analyzing…" : "Re-analyze with this summary"}
-                  </button>
+  type="button"
+  onClick={() => runAnalysis(caseSummaryDraft)}
+  disabled={loading || !caseSummaryDraft.trim()}
+  className="mt-3 w-full rounded-md border border-gold-300 bg-white px-4 py-2 text-sm text-ink-900 hover:bg-gold-50 disabled:opacity-60 transition-colors"
+>
+  {loading ? "Re-analyzing…" : "Re-analyze with this summary"}
+</button>
                 </div>
 
                 <div className="rounded-lg border border-gold-200 bg-white p-5">
