@@ -450,7 +450,7 @@ export default function ComplaintAnalysisPage({
         <Sidebar />
         <main className="flex-1 p-6 lg:p-8 max-w-7xl mx-auto">
           <Link
-            href={`/investigation/ai-assistant/${caseId}`}
+            href={`/ai-assistant`}
             className="text-sm font-medium text-maroon-700 hover:text-maroon-900"
           >
             ← Back to Case Assistant
