@@ -6,13 +6,9 @@ import {
   type FormEvent,
 } from "react";
 
-import {
-  useRouter,
-  useSearchParams,
-} from "next/navigation";
+import { useSearchParams } from "next/navigation";
 
 import { useAuth } from "../providers/AuthProvider";
-
 
 // ============================================================
 // LOGIN FORM
@@ -21,13 +17,11 @@ import { useAuth } from "../providers/AuthProvider";
 function LoginForm() {
   const { login } = useAuth();
 
-  const router = useRouter();
-
   const searchParams =
     useSearchParams();
 
   // ============================================================
-  // REDIRECT URL
+  // REDIRECT
   // ============================================================
 
   const from =
@@ -36,9 +30,13 @@ function LoginForm() {
   /*
    * Only allow internal routes.
    *
-   * Prevents:
+   * Example:
    *
-   * /login?from=https://example.com
+   * /login?from=/complaints
+   *
+   * is allowed.
+   *
+   * External URLs are rejected.
    */
 
   const redirectTo =
@@ -78,6 +76,10 @@ function LoginForm() {
     setSubmitting(true);
 
     try {
+      console.log(
+        "🔐 Login form submitted"
+      );
+
       // --------------------------------------------------------
       // LOGIN
       // --------------------------------------------------------
@@ -88,53 +90,100 @@ function LoginForm() {
           password
         );
 
-      // --------------------------------------------------------
-      // REDIRECT
-      // --------------------------------------------------------
+      console.log(
+        "✅ LOGIN SUCCESS:",
+        loggedInUser
+      );
 
-      /*
-       * If the user originally tried to access
-       * a specific page, return them there.
-       */
+      // --------------------------------------------------------
+      // IF USER WAS REDIRECTED FROM A PAGE
+      // --------------------------------------------------------
 
       if (redirectTo) {
-        router.replace(
+        console.log(
+          "➡️ Redirecting to:",
           redirectTo
         );
+
+        /*
+         * IMPORTANT:
+         *
+         * Full browser navigation instead of
+         * Next.js client-side navigation.
+         */
+
+        window.location.href =
+          redirectTo;
 
         return;
       }
 
       // --------------------------------------------------------
-      // ROLE BASED DASHBOARD
+      // ROLE BASED REDIRECT
       // --------------------------------------------------------
 
-      switch (loggedInUser.role) {
-        case "IO":
-          router.replace(
-            "/dashboard/io"
-          );
-          break;
+      console.log(
+        "👤 User role:",
+        loggedInUser.role
+      );
 
-        case "SHO":
-          router.replace(
-            "/dashboard/sho"
-          );
-          break;
+      if (
+        loggedInUser.role === "IO"
+      ) {
+        console.log(
+          "➡️ Redirecting to IO dashboard"
+        );
 
-        case "LEGAL_ADVISOR":
-          router.replace(
-            "/dashboard/legal-advisor"
-          );
-          break;
+        window.location.href =
+          "/dashboard/io";
 
-        default:
-          router.replace(
-            "/unauthorized"
-          );
-          break;
+        return;
       }
+
+      if (
+        loggedInUser.role === "SHO"
+      ) {
+        console.log(
+          "➡️ Redirecting to SHO dashboard"
+        );
+
+        window.location.href =
+          "/dashboard/sho";
+
+        return;
+      }
+
+      if (
+        loggedInUser.role ===
+        "LEGAL_ADVISOR"
+      ) {
+        console.log(
+          "➡️ Redirecting to Legal Advisor dashboard"
+        );
+
+        window.location.href =
+          "/dashboard/legal-advisor";
+
+        return;
+      }
+
+      // --------------------------------------------------------
+      // UNKNOWN ROLE
+      // --------------------------------------------------------
+
+      console.warn(
+        "⚠️ Unknown user role:",
+        loggedInUser.role
+      );
+
+      window.location.href =
+        "/unauthorized";
     } catch (error) {
+      console.error(
+        "❌ Login failed:",
+        error
+      );
+
       setFormError(
         error instanceof Error
           ? error.message
@@ -204,8 +253,6 @@ function LoginForm() {
               CRIME OS
             </span>
           </div>
-
-          {/* Heading */}
 
           <h2 className="font-display text-2xl text-ink-900">
             Sign in
@@ -303,7 +350,7 @@ function LoginForm() {
             )}
 
             {/* ================================================= */}
-            {/* SIGN IN BUTTON */}
+            {/* BUTTON */}
             {/* ================================================= */}
 
             <button
@@ -326,7 +373,6 @@ function LoginForm() {
     </div>
   );
 }
-
 
 // ============================================================
 // LOGIN PAGE

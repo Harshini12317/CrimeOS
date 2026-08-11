@@ -29,9 +29,7 @@ interface AuthContextValue {
 }
 
 const AuthContext =
-  createContext<AuthContextValue | undefined>(
-    undefined
-  );
+  createContext<AuthContextValue | undefined>(undefined);
 
 export function AuthProvider({
   children,
@@ -40,71 +38,19 @@ export function AuthProvider({
 }) {
   const [user, setUser] = useState<User | null>(null);
 
-  const [isLoading, setIsLoading] =
-    useState(true);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const [error, setError] =
-    useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const router = useRouter();
 
   // ============================================================
-  // BACKEND URL
+  // BACKEND API URL
   // ============================================================
 
   const apiUrl =
     process.env.NEXT_PUBLIC_API_URL ||
     "http://localhost:8000";
-
-  // ============================================================
-  // CHECK AUTHENTICATION
-  // ============================================================
-
-  const checkAuth = useCallback(async () => {
-    try {
-      const response = await fetch(
-        `${apiUrl}/api/auth/me`,
-        {
-          method: "GET",
-          credentials: "include",
-          cache: "no-store",
-        }
-      );
-
-      if (!response.ok) {
-        setUser(null);
-        return null;
-      }
-
-      const data = await response.json();
-
-      /*
-       * Depending on your FastAPI response, this can be:
-       *
-       * { user: {...} }
-       *
-       * or directly:
-       *
-       * {...}
-       */
-
-      const currentUser =
-        data?.user ?? data;
-
-      setUser(currentUser);
-
-      return currentUser;
-    } catch (error) {
-      console.error(
-        "Authentication check failed:",
-        error
-      );
-
-      setUser(null);
-
-      return null;
-    }
-  }, [apiUrl]);
 
   // ============================================================
   // INITIAL AUTH CHECK
@@ -115,6 +61,10 @@ export function AuthProvider({
 
     async function initializeAuth() {
       try {
+        console.log(
+          "🔐 Checking authentication..."
+        );
+
         const response = await fetch(
           `${apiUrl}/api/auth/me`,
           {
@@ -124,7 +74,14 @@ export function AuthProvider({
           }
         );
 
-        if (!mounted) return;
+        console.log(
+          "🔐 /api/auth/me status:",
+          response.status
+        );
+
+        if (!mounted) {
+          return;
+        }
 
         if (!response.ok) {
           setUser(null);
@@ -133,17 +90,32 @@ export function AuthProvider({
 
         const data = await response.json();
 
+        /*
+         * Supports both:
+         *
+         * { user: {...} }
+         *
+         * and:
+         *
+         * {...}
+         */
+
         const currentUser =
           data?.user ?? data;
 
+        console.log(
+          "✅ Current user:",
+          currentUser
+        );
+
         setUser(currentUser);
       } catch (error) {
-        if (mounted) {
-          console.error(
-            "Initial authentication check failed:",
-            error
-          );
+        console.error(
+          "❌ Authentication check failed:",
+          error
+        );
 
+        if (mounted) {
           setUser(null);
         }
       } finally {
@@ -172,6 +144,10 @@ export function AuthProvider({
       setError(null);
 
       try {
+        console.log(
+          "🔐 Attempting login..."
+        );
+
         // ------------------------------------------------------
         // LOGIN REQUEST
         // ------------------------------------------------------
@@ -186,9 +162,8 @@ export function AuthProvider({
             },
 
             /*
-             * VERY IMPORTANT
-             *
-             * Allows browser to accept/send
+             * IMPORTANT:
+             * Allows browser to receive/send
              * the crimeos_token cookie.
              */
 
@@ -201,8 +176,13 @@ export function AuthProvider({
           }
         );
 
+        console.log(
+          "🔐 Login response:",
+          response.status
+        );
+
         // ------------------------------------------------------
-        // PARSE RESPONSE
+        // READ RESPONSE
         // ------------------------------------------------------
 
         let data: any = {};
@@ -223,34 +203,32 @@ export function AuthProvider({
             data?.detail ||
             "Login failed.";
 
+          console.error(
+            "❌ Login failed:",
+            message
+          );
+
           setError(message);
 
           throw new Error(message);
         }
 
-        // ------------------------------------------------------
-        // USER FROM LOGIN RESPONSE
-        // ------------------------------------------------------
-
-        const loginUser =
-          data?.user;
-
-        if (loginUser) {
-          setUser(loginUser);
-        }
+        console.log(
+          "✅ Login API successful"
+        );
 
         // ------------------------------------------------------
-        // VERIFY SESSION
+        // VERIFY AUTHENTICATION
         // ------------------------------------------------------
 
         /*
-         * The backend should have set:
+         * Login should have created:
          *
          * crimeos_token
          *
          * as an HTTP-only cookie.
          *
-         * We now verify that the browser can use it.
+         * Verify that the browser can now authenticate.
          */
 
         const meResponse = await fetch(
@@ -260,6 +238,11 @@ export function AuthProvider({
             credentials: "include",
             cache: "no-store",
           }
+        );
+
+        console.log(
+          "🔐 Verification /me status:",
+          meResponse.status
         );
 
         if (!meResponse.ok) {
@@ -276,22 +259,32 @@ export function AuthProvider({
 
         if (!authenticatedUser) {
           throw new Error(
-            "Could not retrieve authenticated user."
+            "Authenticated user could not be retrieved."
           );
         }
 
+        console.log(
+          "✅ Authenticated user:",
+          authenticatedUser
+        );
+
         // ------------------------------------------------------
-        // UPDATE AUTH STATE
+        // SAVE USER
         // ------------------------------------------------------
 
         setUser(authenticatedUser);
 
         // ------------------------------------------------------
-        // RETURN USER
+        // RETURN USER TO LOGIN PAGE
         // ------------------------------------------------------
 
         return authenticatedUser;
       } catch (error) {
+        console.error(
+          "❌ Login error:",
+          error
+        );
+
         if (error instanceof Error) {
           setError(error.message);
           throw error;
@@ -323,7 +316,7 @@ export function AuthProvider({
       );
     } catch (error) {
       console.error(
-        "Logout request failed:",
+        "❌ Logout request failed:",
         error
       );
     } finally {
