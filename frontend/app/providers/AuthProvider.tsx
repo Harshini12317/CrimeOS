@@ -20,58 +20,169 @@ interface AuthContextValue {
   hasRole: (...roles: Role[]) => boolean;
 }
 
-const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+const AuthContext = createContext<AuthContextValue | undefined>(
+  undefined
+);
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+export function AuthProvider({
+  children,
+}: {
+  children: ReactNode;
+}) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
   const router = useRouter();
 
-  useEffect(() => {
-    fetch("/api/auth/me")
-      .then((res) => (res.ok ? res.json() : Promise.reject()))
-      .then((data) => setUser(data.user))
-      .catch(() => setUser(null))
-      .finally(() => setIsLoading(false));
-  }, []);
+  // ============================================================
+  // BACKEND API URL
+  // ============================================================
 
-  const login = useCallback(async (email: string, password: string) => {
-    setError(null);
-    const res = await fetch("/api/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      const message = data.error ?? "Login failed.";
-      setError(message);
-      throw new Error(message);
+  const apiUrl =
+    process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
+  // ============================================================
+  // CHECK CURRENT USER
+  // ============================================================
+
+  useEffect(() => {
+    async function checkAuth() {
+      try {
+        const res = await fetch(`${apiUrl}/api/auth/me`, {
+          method: "GET",
+          credentials: "include",
+        });
+
+        if (!res.ok) {
+          setUser(null);
+          return;
+        }
+
+        const data = await res.json();
+
+        setUser(data.user ?? null);
+      } catch (error) {
+        console.error("Authentication check failed:", error);
+        setUser(null);
+      } finally {
+        setIsLoading(false);
+      }
     }
-    setUser(data.user);
-  }, []);
+
+    checkAuth();
+  }, [apiUrl]);
+
+  // ============================================================
+  // LOGIN
+  // ============================================================
+
+  const login = useCallback(
+    async (email: string, password: string) => {
+      setError(null);
+
+      try {
+        const res = await fetch(`${apiUrl}/api/auth/login`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify({
+            email,
+            password,
+          }),
+        });
+
+        let data: any = {};
+
+        try {
+          data = await res.json();
+        } catch {
+          data = {};
+        }
+
+        if (!res.ok) {
+          const message =
+            data?.error ||
+            data?.detail ||
+            "Login failed.";
+
+          setError(message);
+          throw new Error(message);
+        }
+
+        setUser(data.user ?? null);
+      } catch (err) {
+        if (err instanceof Error) {
+          setError(err.message);
+          throw err;
+        }
+
+        const message = "Login failed.";
+        setError(message);
+        throw new Error(message);
+      }
+    },
+    [apiUrl]
+  );
+
+  // ============================================================
+  // LOGOUT
+  // ============================================================
 
   const logout = useCallback(async () => {
-    await fetch("/api/auth/logout", { method: "POST" });
-    setUser(null);
-    router.push("/login");
-  }, [router]);
+    try {
+      await fetch(`${apiUrl}/api/auth/logout`, {
+        method: "POST",
+        credentials: "include",
+      });
+    } catch (error) {
+      console.error("Logout request failed:", error);
+    } finally {
+      setUser(null);
+      router.push("/login");
+    }
+  }, [apiUrl, router]);
+
+  // ============================================================
+  // ROLE CHECK
+  // ============================================================
 
   const hasRole = useCallback(
-    (...roles: Role[]) => !!user && roles.includes(user.role),
+    (...roles: Role[]) =>
+      !!user && roles.includes(user.role),
     [user]
   );
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, error, login, logout, hasRole }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        isLoading,
+        error,
+        login,
+        logout,
+        hasRole,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
 }
 
+// ============================================================
+// USE AUTH
+// ============================================================
+
 export function useAuth(): AuthContextValue {
   const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth must be used inside <AuthProvider>");
+
+  if (!ctx) {
+    throw new Error(
+      "useAuth must be used inside <AuthProvider>"
+    );
+  }
+
   return ctx;
 }
