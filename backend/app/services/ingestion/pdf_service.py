@@ -202,14 +202,14 @@ def regex_extract(text: str) -> Dict[str, List[str]]:
 EXTRACTION_SYSTEM_PROMPT = """You are an information extraction engine for a police \
 complaint-management system (CrimeOS). You will receive raw complaint text that may be \
 in Gujarati, Hindi, English, or a mix of these. Extract structured information and \
-return ONLY a single valid JSON object -- no markdown fences, no commentary, no preamble.
+return ONLY a single valid JSON object.
 
 Required JSON shape:
 {
   "sections": {
     "complainant_details": {"name": "", "address": "", "phone": "", "id_proof": ""},
-    "incident_details": {"date": "", "location": "", "description": ""},
-    "accused_details": [{"name": "", "description": ""}],
+    "incident_details": {"date": "YYYY-MM-DD", "location": "", "description": ""},
+    "accused_details": [{"name": "", "description": "", "address": ""}],
     "narrative_text": ""
   },
   "entities": {
@@ -219,10 +219,11 @@ Required JSON shape:
 }
 
 Rules:
-- If a field is not present in the text, use an empty string or empty list -- never invent data.
-- Keep extracted names/places in their original script (do not transliterate).
-- "key_facts" should be short, factual bullet-style strings summarizing the complaint's core allegations.
+- DATE FORMAT: Always convert incident dates to strict YYYY-MM-DD format (e.g., '2026-08-10').
+- If a field is not present in the text, use an empty string or empty list.
+- Keep extracted names/places in their original script.
 - Output valid JSON only.
+- SPLIT PLURAL GROUPS: If text mentions multiple unknown suspects (e.g. 'two unidentified men'), split them into separate entries in accused_details ('Unidentified Suspect 1', 'Unidentified Suspect 2') so every card represents exactly 1 person.
 """
 
 

@@ -42,7 +42,7 @@ export default function ComplainantDetails({ complainants, setComplainants }: Pr
         </div>
         <button
           type="button"
-          onClick={() => setComplainants([...complainants, { type: "Individual", name: "", contact: "", relationship: "", statement: "" }])}
+          onClick={() => setComplainants([...complainants, { type: "Individual", name: "", contact: "", relationship: "", statement: "", address: "" }])}
           className="rounded-md border border-maroon-600 bg-maroon-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-maroon-700"
         >
           Add complainant
@@ -106,6 +106,17 @@ export default function ComplainantDetails({ complainants, setComplainants }: Pr
                   <option value="Other">Other</option>
                 </select>
               </div>
+            </div>
+
+            {/* NEW ADDRESS FIELD TO MATCH DB */}
+            <div className="mt-4">
+              <label className="mb-1 block text-sm font-medium text-ink-900">Address</label>
+              <input
+                value={complainant.address || ""}
+                onChange={(e) => handleFieldChange(index, "address", e.target.value)}
+                className="w-full rounded-md border border-gold-200 bg-white px-3 py-2 text-sm text-ink-900 outline-none focus:border-maroon-600 focus:ring-1 focus:ring-maroon-600"
+                placeholder="Enter residential or business address"
+              />
             </div>
 
             <div className="mt-4">
