@@ -44,6 +44,50 @@ export async function getLiveCaseIds(): Promise<string[] | null> {
   }
 }
 
+// Row shape for the case list panel — deliberately limited to fields a
+// non-technical viewer (a supervising officer) needs at a glance.
+export interface LiveCaseListItem {
+  caseId: string;
+  title: string;
+  status: string;
+  priority: 'High' | 'Medium' | 'Low';
+  date: string;
+}
+
+/**
+ * Server Action to fetch every case for the case-list panel, with just
+ * enough detail (title, status, priority, date) for a non-technical view.
+ */
+export async function getLiveCaseList(): Promise<LiveCaseListItem[] | null> {
+  try {
+    const rows = await sql`
+      SELECT 
+        c.case_id,
+        c.title,
+        c.status,
+        c.priority,
+        co.crime_category,
+        co.created_at
+      FROM cases c
+      LEFT JOIN complaints co ON co.complaint_id = c.complaint_id
+      ORDER BY co.created_at DESC NULLS LAST, c.case_id DESC
+    `;
+
+    if (rows.length === 0) return null;
+
+    return rows.map((r: any) => ({
+      caseId: r.case_id,
+      title: r.title || r.crime_category || `Case ${r.case_id}`,
+      status: r.status ?? 'Investigation Active',
+      priority: (r.priority === 'High' || r.priority === 'Medium' || r.priority === 'Low') ? r.priority : 'Medium',
+      date: r.created_at ? new Date(r.created_at).toISOString().substring(0, 10) : '\u2014'
+    }));
+  } catch (err) {
+    console.error("Error in getLiveCaseList, returning null for fallback.", err);
+    return null;
+  }
+}
+
 /**
  * Server Action to fetch live Dashboard statistics, recent cases, and timelines.
  */
@@ -244,6 +288,30 @@ export async function getLiveCaseSummary(caseId: string): Promise<any | null> {
       };
     });
 
+    // Legal Sections panel: the same recommended_sections data, in the
+    // structured act/section/title/reason shape used by the new
+    // "Legal Sections" report section (as opposed to the prose-style
+    // "recommendations" checklist above).
+    const legalSections = recommendedSections.map((s: any, idx: number) => ({
+      id: `ls-live-${idx}`,
+      act: s.act ?? s.act_code ?? 'BNS',
+      section: s.code ?? s.section_number ?? '\u2014',
+      title: s.title ?? 'Offence Section',
+      reason: s.relevance_reason ?? s.reason ?? 'Matches complaint facts.',
+      category: s.category ?? undefined
+    }));
+
+    // Case law / landmark judgment references stored alongside the
+    // suggestion, if any.
+    const caseLawRefsRaw: any[] = Array.isArray(latestSuggestion?.case_law_refs) ? latestSuggestion.case_law_refs : [];
+    const caseLawReferences = caseLawRefsRaw.map((j: any, idx: number) => ({
+      id: `clr-live-${idx}`,
+      caseTitle: j.case_title ?? j.title ?? 'Referenced Judgment',
+      court: j.court ?? undefined,
+      date: j.case_date ?? j.date ?? undefined,
+      summary: j.summary ?? undefined
+    }));
+
     // Timeline steps reconstruction
     const timeline = [
       { title: 'Complaint Registered', date: formatTimestamp(c.created_at), description: 'FIR filed based on initial complaint facts.', status: 'completed' }
@@ -329,6 +397,10 @@ export async function getLiveCaseSummary(caseId: string): Promise<any | null> {
           'Collect CCTV logs from transaction point locations.'
         ]
       },
+      legalSections: legalSections.length > 0 ? legalSections : [
+        { id: 'ls-live-def-1', act: 'BNS', section: '\u2014', title: 'Pending AI Analysis', reason: 'No legal section suggestions generated yet for this case.', category: undefined }
+      ],
+      caseLawReferences,
       timeline,
       analytics: {
         bank: {

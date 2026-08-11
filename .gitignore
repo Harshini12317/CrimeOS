@@ -28,3 +28,7 @@ Thumbs.db
 
 # Scripts
 backend/scripts/seed_users.py
+
+backend/temp_audio
+backend/temp_image
+backend/temp_pdf
