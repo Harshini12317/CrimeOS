@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+
 import {
   ArrowLeft,
   FileText,
@@ -18,6 +19,10 @@ import {
 
 import IOSidebar from "../../../components/layout/io/Sidebar";
 import DashboardLayout from "../../dashboard/layout";
+
+/* ============================================================
+   CASE DETAILS
+============================================================ */
 
 interface CaseDetails {
   case_id: string;
@@ -55,10 +60,71 @@ interface CaseDetails {
 }
 
 /* ============================================================
+   AI RESPONSE DATA
+============================================================ */
+
+interface LegalResponseData {
+  summary?: string;
+
+  information_provided?: Record<
+    string,
+    unknown
+  >;
+
+  missing_information?: string[];
+
+  issues?: string[];
+
+  relevant_dates?: string[];
+
+  relevant_identifiers?: string[];
+}
+
+/* ============================================================
+   LEGAL REQUEST
+============================================================ */
+
+interface LegalRequest {
+  request_id: string;
+
+  case_id: string;
+
+  complaint_id: string | null;
+
+  agency_type: string;
+
+  agency_name: string;
+
+  recipient_email: string;
+
+  subject: string;
+
+  status: string | null;
+
+  document_url: string | null;
+
+  sent_at: string | null;
+
+  response_received_at: string | null;
+
+  response_document_url: string | null;
+
+  response_file_name: string | null;
+
+  response_file_type: string | null;
+
+  response_summary: string | null;
+
+  response_data: LegalResponseData | null;
+}
+
+/* ============================================================
    STATUS STYLE
 ============================================================ */
 
-function getStatusStyle(status: string | null) {
+function getStatusStyle(
+  status: string | null
+) {
   switch (status?.toLowerCase()) {
     case "open":
       return "border-blue-200 bg-blue-50 text-blue-700";
@@ -73,6 +139,15 @@ function getStatusStyle(status: string | null) {
     case "legally cleared":
       return "border-green-200 bg-green-50 text-green-700";
 
+    case "responded":
+      return "border-green-200 bg-green-50 text-green-700";
+
+    case "sent":
+      return "border-blue-200 bg-blue-50 text-blue-700";
+
+    case "pending":
+      return "border-amber-200 bg-amber-50 text-amber-700";
+
     case "closed":
       return "border-gray-200 bg-gray-100 text-gray-700";
 
@@ -85,7 +160,9 @@ function getStatusStyle(status: string | null) {
    PRIORITY STYLE
 ============================================================ */
 
-function getPriorityStyle(priority: string | null) {
+function getPriorityStyle(
+  priority: string | null
+) {
   switch (priority?.toLowerCase()) {
     case "high":
       return "border-red-200 bg-red-50 text-red-700";
@@ -105,15 +182,20 @@ function getPriorityStyle(priority: string | null) {
    FORMAT DATE
 ============================================================ */
 
-function formatDate(value: string | null) {
+function formatDate(
+  value: string | null
+) {
   if (!value) return "-";
 
   try {
-    return new Date(value).toLocaleDateString("en-IN", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    });
+    return new Date(value).toLocaleDateString(
+      "en-IN",
+      {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      }
+    );
   } catch {
     return "-";
   }
@@ -123,17 +205,22 @@ function formatDate(value: string | null) {
    FORMAT DATETIME
 ============================================================ */
 
-function formatDateTime(value: string | null) {
+function formatDateTime(
+  value: string | null
+) {
   if (!value) return "-";
 
   try {
-    return new Date(value).toLocaleString("en-IN", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    return new Date(value).toLocaleString(
+      "en-IN",
+      {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      }
+    );
   } catch {
     return "-";
   }
@@ -173,21 +260,56 @@ export default function CaseDetailsPage() {
 
   const caseId = params.caseId as string;
 
+  /* ==========================================================
+     CASE STATE
+  ========================================================== */
+
   const [caseData, setCaseData] =
     useState<CaseDetails | null>(null);
 
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] =
+    useState(true);
 
-  const [error, setError] = useState("");
-
-  const [startingInvestigation, setStartingInvestigation] =
-    useState(false);
-
-  const [actionMessage, setActionMessage] =
+  const [error, setError] =
     useState("");
 
-  const [actionError, setActionError] =
-    useState("");
+  /* ==========================================================
+     INVESTIGATION STATE
+  ========================================================== */
+
+  const [
+    startingInvestigation,
+    setStartingInvestigation,
+  ] = useState(false);
+
+  const [
+    actionMessage,
+    setActionMessage,
+  ] = useState("");
+
+  const [
+    actionError,
+    setActionError,
+  ] = useState("");
+
+  /* ==========================================================
+     LEGAL REQUEST STATE
+  ========================================================== */
+
+  const [
+    legalRequests,
+    setLegalRequests,
+  ] = useState<LegalRequest[]>([]);
+
+  const [
+    legalRequestsLoading,
+    setLegalRequestsLoading,
+  ] = useState(true);
+
+  const [
+    legalRequestsError,
+    setLegalRequestsError,
+  ] = useState("");
 
   /* ==========================================================
      LOAD CASE
@@ -215,7 +337,8 @@ export default function CaseDetailsPage() {
           }
         );
 
-        const data = await response.json();
+        const data =
+          await response.json();
 
         if (!response.ok) {
           throw new Error(
@@ -245,6 +368,66 @@ export default function CaseDetailsPage() {
   }, [caseId]);
 
   /* ==========================================================
+     LOAD LEGAL REQUESTS / OPERATOR RESPONSES
+  ========================================================== */
+
+  useEffect(() => {
+    if (!caseId) return;
+
+    async function loadLegalRequests() {
+      try {
+        setLegalRequestsLoading(true);
+        setLegalRequestsError("");
+
+        const API_BASE =
+          process.env.NEXT_PUBLIC_API_URL ||
+          "http://localhost:8000";
+
+        const response = await fetch(
+          `${API_BASE}/api/legal-requests/case/${encodeURIComponent(
+            caseId
+          )}`,
+          {
+            method: "GET",
+            credentials: "include",
+          }
+        );
+
+        const data =
+          await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            data?.detail ||
+              "Failed to load operator responses."
+          );
+        }
+
+        setLegalRequests(
+          Array.isArray(data)
+            ? data
+            : []
+        );
+      } catch (error) {
+        console.error(
+          "Legal requests error:",
+          error
+        );
+
+        setLegalRequestsError(
+          error instanceof Error
+            ? error.message
+            : "Failed to load operator responses."
+        );
+      } finally {
+        setLegalRequestsLoading(false);
+      }
+    }
+
+    loadLegalRequests();
+  }, [caseId]);
+
+  /* ==========================================================
      START INVESTIGATION
   ========================================================== */
 
@@ -269,12 +452,14 @@ export default function CaseDetailsPage() {
           method: "POST",
           credentials: "include",
           headers: {
-            "Content-Type": "application/json",
+            "Content-Type":
+              "application/json",
           },
         }
       );
 
-      const data = await response.json();
+      const data =
+        await response.json();
 
       if (!response.ok) {
         throw new Error(
@@ -284,7 +469,7 @@ export default function CaseDetailsPage() {
       }
 
       /* -------------------------------------------------------
-         Update page immediately
+         UPDATE PAGE IMMEDIATELY
       ------------------------------------------------------- */
 
       setCaseData((previous) => {
@@ -367,7 +552,9 @@ export default function CaseDetailsPage() {
 
               <button
                 type="button"
-                onClick={() => router.push("/cases")}
+                onClick={() =>
+                  router.push("/cases")
+                }
                 className="inline-flex items-center gap-2 text-sm font-medium text-maroon-700 transition hover:text-maroon-900"
               >
                 <ArrowLeft className="h-4 w-4" />
@@ -403,6 +590,7 @@ export default function CaseDetailsPage() {
                     <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-600" />
 
                     <div>
+
                       <h2 className="font-semibold text-red-800">
                         Unable to load case
                       </h2>
@@ -410,6 +598,7 @@ export default function CaseDetailsPage() {
                       <p className="mt-1 text-sm text-red-700">
                         {error}
                       </p>
+
                     </div>
 
                   </div>
@@ -425,6 +614,7 @@ export default function CaseDetailsPage() {
                 !error &&
                 caseData && (
                   <>
+
                     {/* =================================================
                         CASE HEADER
                     ================================================= */}
@@ -460,7 +650,8 @@ export default function CaseDetailsPage() {
                                   caseData.priority
                                 )}`}
                               >
-                                {caseData.priority} Priority
+                                {caseData.priority}{" "}
+                                Priority
                               </span>
                             )}
 
@@ -482,17 +673,17 @@ export default function CaseDetailsPage() {
 
                         </div>
 
-                        {/* =================================================
-                            START INVESTIGATION
-                        ================================================= */}
+                        {/* START INVESTIGATION */}
 
                         <div className="shrink-0">
 
                           {investigationStarted ? (
                             <div className="inline-flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 px-5 py-2.5 text-sm font-medium text-green-700">
+
                               <Shield className="h-4 w-4" />
 
                               Investigation Started
+
                             </div>
                           ) : (
                             <button
@@ -505,6 +696,7 @@ export default function CaseDetailsPage() {
                               }
                               className="inline-flex items-center justify-center gap-2 rounded-lg bg-maroon-700 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-maroon-800 disabled:cursor-not-allowed disabled:opacity-60"
                             >
+
                               {startingInvestigation ? (
                                 <>
                                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -518,6 +710,7 @@ export default function CaseDetailsPage() {
                                   Start Investigation
                                 </>
                               )}
+
                             </button>
                           )}
 
@@ -578,6 +771,7 @@ export default function CaseDetailsPage() {
                         <Shield className="h-5 w-5 text-maroon-700" />
 
                         <div>
+
                           <h2 className="font-medium text-ink-900">
                             Case Overview
                           </h2>
@@ -585,6 +779,7 @@ export default function CaseDetailsPage() {
                           <p className="text-sm text-ink-600">
                             Basic information about this case.
                           </p>
+
                         </div>
 
                       </div>
@@ -650,6 +845,7 @@ export default function CaseDetailsPage() {
                         <MapPin className="h-5 w-5 text-maroon-700" />
 
                         <div>
+
                           <h2 className="font-medium text-ink-900">
                             Incident Information
                           </h2>
@@ -657,6 +853,7 @@ export default function CaseDetailsPage() {
                           <p className="text-sm text-ink-600">
                             Location and incident details.
                           </p>
+
                         </div>
 
                       </div>
@@ -699,6 +896,7 @@ export default function CaseDetailsPage() {
                         <FileText className="h-5 w-5 text-maroon-700" />
 
                         <div>
+
                           <h2 className="font-medium text-ink-900">
                             FIR Details
                           </h2>
@@ -706,6 +904,7 @@ export default function CaseDetailsPage() {
                           <p className="text-sm text-ink-600">
                             FIR information associated with this case.
                           </p>
+
                         </div>
 
                       </div>
@@ -752,6 +951,7 @@ export default function CaseDetailsPage() {
                         <Building2 className="h-5 w-5 text-maroon-700" />
 
                         <div>
+
                           <h2 className="font-medium text-ink-900">
                             Court & Chargesheet
                           </h2>
@@ -759,6 +959,7 @@ export default function CaseDetailsPage() {
                           <p className="text-sm text-ink-600">
                             Judicial and chargesheet information.
                           </p>
+
                         </div>
 
                       </div>
@@ -822,6 +1023,7 @@ export default function CaseDetailsPage() {
                         <User className="h-5 w-5 text-maroon-700" />
 
                         <div>
+
                           <h2 className="font-medium text-ink-900">
                             Investigation
                           </h2>
@@ -829,6 +1031,7 @@ export default function CaseDetailsPage() {
                           <p className="text-sm text-ink-600">
                             Investigation status and case progress.
                           </p>
+
                         </div>
 
                       </div>
@@ -893,6 +1096,7 @@ export default function CaseDetailsPage() {
                             }
                             className="mt-4 inline-flex items-center gap-2 rounded-lg bg-maroon-700 px-4 py-2 text-sm font-medium text-white transition hover:bg-maroon-800 disabled:cursor-not-allowed disabled:opacity-60"
                           >
+
                             {startingInvestigation ? (
                               <>
                                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -904,6 +1108,7 @@ export default function CaseDetailsPage() {
                                 Start Investigation
                               </>
                             )}
+
                           </button>
 
                         </div>
@@ -912,7 +1117,495 @@ export default function CaseDetailsPage() {
                     </section>
 
                     {/* =================================================
-                        CASE TIMELINE / METADATA
+                        OPERATOR RESPONSES
+                    ================================================= */}
+
+                    <section className="rounded-lg border border-gold-200 bg-white p-6">
+
+                      <div className="mb-5 flex items-center gap-3">
+
+                        <FileText className="h-5 w-5 text-maroon-700" />
+
+                        <div>
+
+                          <h2 className="font-medium text-ink-900">
+                            Operator Responses
+                          </h2>
+
+                          <p className="text-sm text-ink-600">
+                            Responses received from external agencies.
+                          </p>
+
+                        </div>
+
+                      </div>
+
+                      {/* LOADING */}
+
+                      {legalRequestsLoading && (
+                        <div className="flex items-center gap-2 rounded-lg border border-gold-200 bg-ivory p-4">
+
+                          <Loader2 className="h-4 w-4 animate-spin text-maroon-700" />
+
+                          <p className="text-sm text-ink-600">
+                            Loading operator responses...
+                          </p>
+
+                        </div>
+                      )}
+
+                      {/* ERROR */}
+
+                      {!legalRequestsLoading &&
+                        legalRequestsError && (
+                          <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+
+                            <div className="flex items-start gap-3">
+
+                              <AlertCircle className="mt-0.5 h-5 w-5 text-red-600" />
+
+                              <div>
+
+                                <p className="font-medium text-red-800">
+                                  Unable to load operator responses
+                                </p>
+
+                                <p className="mt-1 text-sm text-red-700">
+                                  {legalRequestsError}
+                                </p>
+
+                              </div>
+
+                            </div>
+
+                          </div>
+                        )}
+
+                      {/* NO REQUESTS */}
+
+                      {!legalRequestsLoading &&
+                        !legalRequestsError &&
+                        legalRequests.length === 0 && (
+                          <div className="rounded-lg border border-gold-200 bg-ivory p-5">
+
+                            <p className="text-sm text-ink-600">
+                              No legal information requests have
+                              been created for this case.
+                            </p>
+
+                          </div>
+                        )}
+
+                      {/* REQUESTS */}
+
+                      {!legalRequestsLoading &&
+                        !legalRequestsError &&
+                        legalRequests.length > 0 && (
+                          <div className="space-y-5">
+
+                            {legalRequests.map(
+                              (request) => {
+
+                                const responseData =
+                                  request.response_data;
+
+                                const hasResponse =
+                                  request.status?.toLowerCase() ===
+                                    "responded" ||
+                                  !!request.response_received_at;
+
+                                return (
+                                  <div
+                                    key={
+                                      request.request_id
+                                    }
+                                    className="rounded-lg border border-gold-200 p-5"
+                                  >
+
+                                    {/* REQUEST HEADER */}
+
+                                    <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+
+                                      <div>
+
+                                        <div className="flex flex-wrap items-center gap-2">
+
+                                          <h3 className="font-medium text-ink-900">
+                                            {
+                                              request.agency_name
+                                            }
+                                          </h3>
+
+                                          <span
+                                            className={`rounded-full border px-3 py-1 text-xs font-medium ${
+                                              hasResponse
+                                                ? "border-green-200 bg-green-50 text-green-700"
+                                                : getStatusStyle(
+                                                    request.status
+                                                  )
+                                            }`}
+                                          >
+                                            {hasResponse
+                                              ? "RESPONDED"
+                                              : request.status ||
+                                                "PENDING"}
+                                          </span>
+
+                                        </div>
+
+                                        <p className="mt-1 text-sm text-ink-600">
+                                          {request.subject}
+                                        </p>
+
+                                        <p className="mt-1 text-xs text-ink-500">
+                                          {request.agency_type}
+                                        </p>
+
+                                      </div>
+
+                                      <div className="text-xs text-ink-500">
+
+                                        Request ID:{" "}
+
+                                        <span className="font-medium text-ink-700">
+                                          {
+                                            request.request_id
+                                          }
+                                        </span>
+
+                                      </div>
+
+                                    </div>
+
+                                    {/* RESPONSE */}
+
+                                    {hasResponse ? (
+                                      <div className="mt-5 space-y-5">
+
+                                        {/* RESPONSE METADATA */}
+
+                                        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+
+                                          <InfoItem
+                                            label="Response Received"
+                                            value={formatDateTime(
+                                              request.response_received_at
+                                            )}
+                                          />
+
+                                          <InfoItem
+                                            label="Response Document"
+                                            value={
+                                              request.response_file_name
+                                            }
+                                          />
+
+                                          <InfoItem
+                                            label="Response Type"
+                                            value={
+                                              request.response_file_type
+                                            }
+                                          />
+
+                                        </div>
+
+                                        {/* AI SUMMARY */}
+
+                                        {request.response_summary && (
+                                          <div className="rounded-lg border border-blue-200 bg-blue-50 p-5">
+
+                                            <p className="text-xs font-semibold uppercase tracking-wide text-blue-700">
+                                              AI Analysis Summary
+                                            </p>
+
+                                            <p className="mt-2 text-sm leading-6 text-blue-900">
+                                              {
+                                                request.response_summary
+                                              }
+                                            </p>
+
+                                          </div>
+                                        )}
+
+                                        {/* ISSUES */}
+
+                                        {responseData?.issues &&
+                                          responseData.issues
+                                            .length >
+                                            0 && (
+                                            <div className="rounded-lg border border-red-200 bg-red-50 p-5">
+
+                                              <p className="text-xs font-semibold uppercase tracking-wide text-red-700">
+                                                Issues
+                                              </p>
+
+                                              <ul className="mt-3 space-y-2">
+
+                                                {responseData.issues.map(
+                                                  (
+                                                    issue,
+                                                    index
+                                                  ) => (
+                                                    <li
+                                                      key={
+                                                        index
+                                                      }
+                                                      className="text-sm text-red-800"
+                                                    >
+                                                      •{" "}
+                                                      {
+                                                        issue
+                                                      }
+                                                    </li>
+                                                  )
+                                                )}
+
+                                              </ul>
+
+                                            </div>
+                                          )}
+
+                                        {/* MISSING INFORMATION */}
+
+                                        {responseData?.missing_information &&
+                                          responseData
+                                            .missing_information
+                                            .length >
+                                            0 && (
+                                            <div className="rounded-lg border border-amber-200 bg-amber-50 p-5">
+
+                                              <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">
+                                                Missing Information
+                                              </p>
+
+                                              <ul className="mt-3 space-y-2">
+
+                                                {responseData.missing_information.map(
+                                                  (
+                                                    item,
+                                                    index
+                                                  ) => (
+                                                    <li
+                                                      key={
+                                                        index
+                                                      }
+                                                      className="text-sm text-amber-800"
+                                                    >
+                                                      •{" "}
+                                                      {
+                                                        item
+                                                      }
+                                                    </li>
+                                                  )
+                                                )}
+
+                                              </ul>
+
+                                            </div>
+                                          )}
+
+                                        {/* INFORMATION PROVIDED */}
+
+                                        {responseData?.information_provided &&
+                                          Object.keys(
+                                            responseData.information_provided
+                                          ).length >
+                                            0 && (
+                                            <div>
+
+                                              <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink-500">
+                                                Information Provided
+                                              </p>
+
+                                              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+
+                                                {Object.entries(
+                                                  responseData.information_provided
+                                                ).map(
+                                                  (
+                                                    [
+                                                      key,
+                                                      value,
+                                                    ]
+                                                  ) => (
+                                                    <InfoItem
+                                                      key={
+                                                        key
+                                                      }
+                                                      label={key.replace(
+                                                        /_/g,
+                                                        " "
+                                                      )}
+                                                      value={
+                                                        typeof value ===
+                                                        "object"
+                                                          ? JSON.stringify(
+                                                              value
+                                                            )
+                                                          : String(
+                                                              value ??
+                                                                "-"
+                                                            )
+                                                      }
+                                                    />
+                                                  )
+                                                )}
+
+                                              </div>
+
+                                            </div>
+                                          )}
+
+                                        {/* RELEVANT DATES */}
+
+                                        {responseData?.relevant_dates &&
+                                          responseData
+                                            .relevant_dates
+                                            .length >
+                                            0 && (
+                                            <div>
+
+                                              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-500">
+                                                Relevant Dates
+                                              </p>
+
+                                              <div className="flex flex-wrap gap-2">
+
+                                                {responseData.relevant_dates.map(
+                                                  (
+                                                    date,
+                                                    index
+                                                  ) => (
+                                                    <span
+                                                      key={
+                                                        index
+                                                      }
+                                                      className="rounded-md border border-gold-200 bg-ivory px-3 py-1.5 text-xs font-medium text-ink-700"
+                                                    >
+                                                      {
+                                                        date
+                                                      }
+                                                    </span>
+                                                  )
+                                                )}
+
+                                              </div>
+
+                                            </div>
+                                          )}
+
+                                        {/* IDENTIFIERS */}
+
+                                        {responseData?.relevant_identifiers &&
+                                          responseData
+                                            .relevant_identifiers
+                                            .length >
+                                            0 && (
+                                            <div>
+
+                                              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-500">
+                                                Relevant Identifiers
+                                              </p>
+
+                                              <div className="flex flex-wrap gap-2">
+
+                                                {responseData.relevant_identifiers.map(
+                                                  (
+                                                    identifier,
+                                                    index
+                                                  ) => (
+                                                    <span
+                                                      key={
+                                                        index
+                                                      }
+                                                      className="rounded-md border border-gold-200 bg-ivory px-3 py-1.5 text-xs font-medium text-ink-700"
+                                                    >
+                                                      {
+                                                        identifier
+                                                      }
+                                                    </span>
+                                                  )
+                                                )}
+
+                                              </div>
+
+                                            </div>
+                                          )}
+
+                                        {/* VIEW RESPONSE DOCUMENT */}
+
+                                        {request.response_document_url &&
+                                          !request.response_document_url.startsWith(
+                                            "storage/"
+                                          ) &&
+                                          !request.response_document_url.startsWith(
+                                            "http://"
+                                          ) &&
+                                          !request.response_document_url.startsWith(
+                                            "https://"
+                                          ) ? null : request.response_document_url ? (
+                                            <div>
+
+                                              <a
+                                                href={
+                                                  request.response_document_url
+                                                }
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="inline-flex items-center gap-2 rounded-lg bg-maroon-700 px-4 py-2 text-sm font-medium text-white transition hover:bg-maroon-800"
+                                              >
+
+                                                <FileText className="h-4 w-4" />
+
+                                                View Response Document
+
+                                              </a>
+
+                                            </div>
+                                          ) : null}
+
+                                        {/* LOCAL FILE NOTICE */}
+
+                                        {request.response_document_url?.startsWith(
+                                          "storage/"
+                                        ) && (
+                                          <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+
+                                            <p className="text-sm text-amber-800">
+                                              Response document is stored
+                                              locally on the backend.
+                                              Cloudinary upload is required
+                                              before it can be opened from
+                                              the browser.
+                                            </p>
+
+                                          </div>
+                                        )}
+
+                                      </div>
+                                    ) : (
+                                      <div className="mt-5 rounded-lg border border-gold-200 bg-ivory p-4">
+
+                                        <p className="text-sm text-ink-600">
+                                          No response has been received
+                                          from this agency yet.
+                                        </p>
+
+                                      </div>
+                                    )}
+
+                                  </div>
+                                );
+                              }
+                            )}
+
+                          </div>
+                        )}
+
+                    </section>
+
+                    {/* =================================================
+                        CASE TIMELINE
                     ================================================= */}
 
                     <section className="rounded-lg border border-gold-200 bg-white p-6">
@@ -922,6 +1615,7 @@ export default function CaseDetailsPage() {
                         <Calendar className="h-5 w-5 text-maroon-700" />
 
                         <div>
+
                           <h2 className="font-medium text-ink-900">
                             Case Timeline
                           </h2>
@@ -929,6 +1623,7 @@ export default function CaseDetailsPage() {
                           <p className="text-sm text-ink-600">
                             Important dates associated with the case.
                           </p>
+
                         </div>
 
                       </div>
@@ -937,20 +1632,26 @@ export default function CaseDetailsPage() {
 
                         <TimelineItem
                           title="Case Created"
-                          date={caseData.created_at}
+                          date={
+                            caseData.created_at
+                          }
                         />
 
                         {caseData.updated_at && (
                           <TimelineItem
                             title="Last Updated"
-                            date={caseData.updated_at}
+                            date={
+                              caseData.updated_at
+                            }
                           />
                         )}
 
                         {caseData.closed_at && (
                           <TimelineItem
                             title="Case Closed"
-                            date={caseData.closed_at}
+                            date={
+                              caseData.closed_at
+                            }
                           />
                         )}
 
@@ -976,13 +1677,16 @@ export default function CaseDetailsPage() {
                           <FileText className="mt-0.5 h-5 w-5 text-maroon-700" />
 
                           <div>
+
                             <h3 className="font-medium text-ink-900">
                               FIR & Legal Details
                             </h3>
 
                             <p className="mt-1 text-sm text-ink-600">
-                              View FIR information and applicable legal sections.
+                              View FIR information and
+                              applicable legal sections.
                             </p>
+
                           </div>
 
                         </div>
@@ -1001,13 +1705,16 @@ export default function CaseDetailsPage() {
                           <FileText className="mt-0.5 h-5 w-5 text-maroon-700" />
 
                           <div>
+
                             <h3 className="font-medium text-ink-900">
                               Case Diary
                             </h3>
 
                             <p className="mt-1 text-sm text-ink-600">
-                              Record and review investigation activities.
+                              Record and review investigation
+                              activities.
                             </p>
+
                           </div>
 
                         </div>
@@ -1030,7 +1737,6 @@ export default function CaseDetailsPage() {
   );
 }
 
-
 /* ============================================================
    TIMELINE ITEM
 ============================================================ */
@@ -1048,6 +1754,7 @@ function TimelineItem({
       <div className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-maroon-700" />
 
       <div>
+
         <p className="text-sm font-medium text-ink-900">
           {title}
         </p>
@@ -1055,6 +1762,7 @@ function TimelineItem({
         <p className="mt-1 text-xs text-ink-500">
           {formatDateTime(date)}
         </p>
+
       </div>
 
     </div>

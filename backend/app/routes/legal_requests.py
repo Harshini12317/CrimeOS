@@ -1,9 +1,9 @@
-import uuid
 import os
 import tempfile
-import requests
-
+import uuid
 from datetime import datetime
+
+import requests
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import text
@@ -22,15 +22,10 @@ from app.schemas.legal_request import (
     LegalRequestResponse,
     LegalRequestGenerate,
 )
-from app.services.legal_response_processor import (
-    process_gmail_responses,
-)
+
 from app.services.ai_service import (
     analyze_operator_request,
     AIServiceError,
-)
-from app.services.gmail_response_service import (
-    fetch_new_responses,
 )
 
 from app.services.legal_request_generator import (
@@ -45,7 +40,17 @@ from app.services.legal_request_storage import (
     upload_legal_request_pdf,
 )
 
-from app.services.email_service import send_email
+from app.services.email_service import (
+    send_email,
+)
+
+from app.services.gmail_response_service import (
+    fetch_new_responses,
+)
+
+from app.services.legal_response_processor import (
+    process_gmail_responses,
+)
 
 
 # ==========================================================
@@ -70,6 +75,13 @@ def create_legal_request(
     data: LegalRequestCreate,
     db: Session = Depends(get_db),
 ):
+    """
+    Create a legal request manually.
+
+    This endpoint only creates the database record.
+    PDF generation/email sending are handled separately.
+    """
+
     # ======================================================
     # 1. VERIFY COMPLAINT
     # ======================================================
@@ -77,7 +89,8 @@ def create_legal_request(
     complaint = (
         db.query(Complaint)
         .filter(
-            Complaint.complaint_id == data.complaint_id
+            Complaint.complaint_id
+            == data.complaint_id
         )
         .first()
     )
@@ -119,10 +132,12 @@ def create_legal_request(
         )
 
     # ======================================================
-    # 3. VERIFY CASE -> COMPLAINT RELATIONSHIP
+    # 3. VERIFY CASE -> COMPLAINT
     # ======================================================
 
-    if case["complaint_id"] != data.complaint_id:
+    if str(case["complaint_id"]) != str(
+        data.complaint_id
+    ):
         raise HTTPException(
             status_code=400,
             detail=(
@@ -135,6 +150,8 @@ def create_legal_request(
     # 4. CREATE REQUEST
     # ======================================================
 
+    now = datetime.utcnow()
+
     request = LegalRequest(
         request_id=str(uuid.uuid4()),
         case_id=data.case_id,
@@ -145,8 +162,8 @@ def create_legal_request(
         subject=data.subject,
         document_url=data.document_url,
         status="DRAFT",
-        created_at=datetime.utcnow(),
-        updated_at=datetime.utcnow(),
+        created_at=now,
+        updated_at=now,
     )
 
     db.add(request)
@@ -165,6 +182,32 @@ def generate_request(
     data: LegalRequestGenerate,
     db: Session = Depends(get_db),
 ):
+    """
+    Generate a legal request using:
+
+        Case
+          ↓
+        Complaint
+          ↓
+        Victims
+          ↓
+        Suspects
+          ↓
+        Evidence
+          ↓
+        AI
+          ↓
+        Minimum required operator information
+          ↓
+        Official request
+          ↓
+        PDF
+          ↓
+        Cloudinary
+          ↓
+        Database
+    """
+
     # ======================================================
     # 1. FETCH CASE
     # ======================================================
@@ -219,8 +262,8 @@ def generate_request(
         raise HTTPException(
             status_code=404,
             detail=(
-                "Complaint linked to "
-                "this case was not found"
+                "Complaint linked to this case "
+                "was not found"
             ),
         )
 
@@ -233,7 +276,8 @@ def generate_request(
     victims = (
         db.query(Victim)
         .filter(
-            Victim.complaint_id == complaint_id
+            Victim.complaint_id
+            == complaint_id
         )
         .all()
     )
@@ -245,7 +289,8 @@ def generate_request(
     suspects = (
         db.query(Suspect)
         .filter(
-            Suspect.complaint_id == complaint_id
+            Suspect.complaint_id
+            == complaint_id
         )
         .all()
     )
@@ -257,7 +302,8 @@ def generate_request(
     evidence = (
         db.query(Evidence)
         .filter(
-            Evidence.complaint_id == complaint_id
+            Evidence.complaint_id
+            == complaint_id
         )
         .all()
     )
@@ -265,15 +311,17 @@ def generate_request(
     # ======================================================
     # 6. BUILD INTERNAL COMPLAINT CONTEXT
     #
-    # This information is used by the AI.
-    #
     # IMPORTANT:
-    # It is NOT directly sent to the operator.
+    #
+    # This context is used internally by the AI.
+    #
+    # We do NOT dump the complete complaint into the
+    # operator email.
     # ======================================================
 
     complaint_context = {
         # --------------------------------------------------
-        # BASIC COMPLAINT INFORMATION
+        # BASIC COMPLAINT
         # --------------------------------------------------
 
         "complaint_id":
@@ -384,8 +432,8 @@ def generate_request(
         # --------------------------------------------------
         # DOCUMENTS
         #
-        # We do not have the Document model in this route,
-        # so we intentionally do not invent document fields.
+        # No Document model is imported in this route.
+        # Therefore we intentionally do not fabricate data.
         # --------------------------------------------------
 
         "documents": [],
@@ -414,7 +462,7 @@ def generate_request(
                 "summary":
                     item.summary,
 
-                # Limit extracted text sent to AI.
+                # Limit text sent to AI.
                 "extracted_text": (
                     item.extracted_text[:5000]
                     if item.extracted_text
@@ -431,8 +479,8 @@ def generate_request(
     # ======================================================
     # 7. AI ANALYSIS
     #
-    # Determine the MINIMUM information required from
-    # this particular operator.
+    # Determine the minimum information required from
+    # THIS specific operator.
     # ======================================================
 
     try:
@@ -488,12 +536,6 @@ def generate_request(
 
     # ======================================================
     # 8. GENERATE OFFICIAL REQUEST
-    #
-    # IMPORTANT:
-    # Pass operator_requirements to the generator.
-    #
-    # The generator will NOT dump all complaint data into
-    # the PDF.
     # ======================================================
 
     try:
@@ -556,37 +598,45 @@ def generate_request(
         raise HTTPException(
             status_code=500,
             detail=(
-                "Failed to generate "
-                f"legal request: {str(e)}"
+                "Failed to generate legal request: "
+                f"{str(e)}"
             ),
         )
 
     # ======================================================
-    # 9. CREATE LEGAL REQUEST DB RECORD
+    # 9. CREATE DATABASE RECORD
     # ======================================================
+
+    now = datetime.utcnow()
 
     request = LegalRequest(
         request_id=str(uuid.uuid4()),
 
-        case_id=case["case_id"],
+        case_id=
+            case["case_id"],
 
-        complaint_id=case["complaint_id"],
+        complaint_id=
+            case["complaint_id"],
 
-        agency_type=data.agency_type,
+        agency_type=
+            data.agency_type,
 
-        agency_name=data.agency_name,
+        agency_name=
+            data.agency_name,
 
-        recipient_email=data.recipient_email,
+        recipient_email=
+            data.recipient_email,
 
-        subject=generated["subject"],
+        subject=
+            generated["subject"],
 
         document_url=None,
 
         status="GENERATED",
 
-        created_at=datetime.utcnow(),
+        created_at=now,
 
-        updated_at=datetime.utcnow(),
+        updated_at=now,
     )
 
     db.add(request)
@@ -615,11 +665,18 @@ def generate_request(
 
     except Exception as e:
 
-        request.status = "GENERATION_FAILED"
+        db.rollback()
 
+        request.status = "GENERATION_FAILED"
         request.updated_at = datetime.utcnow()
 
+        db.add(request)
         db.commit()
+
+        print(
+            "LEGAL REQUEST PDF ERROR:",
+            repr(e),
+        )
 
         raise HTTPException(
             status_code=500,
@@ -650,10 +707,14 @@ def generate_request(
     except Exception as e:
 
         request.status = "UPLOAD_FAILED"
-
         request.updated_at = datetime.utcnow()
 
         db.commit()
+
+        print(
+            "LEGAL REQUEST CLOUDINARY ERROR:",
+            repr(e),
+        )
 
         raise HTTPException(
             status_code=500,
@@ -667,15 +728,19 @@ def generate_request(
     finally:
 
         # --------------------------------------------------
-        # Delete local temporary PDF
+        # Delete temporary local PDF
         # --------------------------------------------------
 
         if pdf_path:
 
             try:
 
-                if os.path.exists(pdf_path):
-                    os.unlink(pdf_path)
+                if os.path.exists(
+                    pdf_path
+                ):
+                    os.unlink(
+                        pdf_path
+                    )
 
             except Exception as cleanup_error:
 
@@ -735,9 +800,6 @@ def generate_request(
         "status":
             request.status,
 
-        # Useful for debugging during development.
-        # You can remove this later if you don't want the
-        # frontend to see the AI planning result.
         "operator_requirements":
             operator_requirements,
     }
@@ -752,6 +814,20 @@ async def send_legal_request(
     request_id: str,
     db: Session = Depends(get_db),
 ):
+    """
+    Send generated legal request to the external agency.
+
+    The email contains:
+        - Case ID
+        - Complaint ID
+        - Agency
+        - Subject
+        - Generated PDF
+
+    It does NOT send the complete complaint details
+    directly in the email.
+    """
+
     # ======================================================
     # 1. FIND REQUEST
     # ======================================================
@@ -773,7 +849,7 @@ async def send_legal_request(
         )
 
     # ======================================================
-    # 2. CHECK RECIPIENT EMAIL
+    # 2. CHECK EMAIL
     # ======================================================
 
     if not request.recipient_email:
@@ -816,16 +892,12 @@ async def send_legal_request(
             ),
         )
 
-    # ======================================================
-    # TEMPORARY FILE
-    # ======================================================
-
     temp_path = None
 
     try:
 
         # ==================================================
-        # 5. DOWNLOAD PDF FROM CLOUDINARY
+        # 5. DOWNLOAD PDF
         # ==================================================
 
         response = requests.get(
@@ -852,6 +924,10 @@ async def send_legal_request(
 
         # ==================================================
         # 7. EMAIL BODY
+        #
+        # Keep this minimal.
+        # Detailed complaint information stays in
+        # CrimeOS / attached official document.
         # ==================================================
 
         email_body = f"""
@@ -859,6 +935,9 @@ Dear Sir/Madam,
 
 Please find attached the official legal information
 request related to the investigation.
+
+CrimeOS Request ID:
+{request.request_id}
 
 Case ID:
 {request.case_id}
@@ -901,7 +980,7 @@ CrimeOS
         )
 
         # ==================================================
-        # 9. UPDATE REQUEST STATUS
+        # 9. UPDATE STATUS
         # ==================================================
 
         request.status = "SENT"
@@ -914,7 +993,7 @@ CrimeOS
         db.refresh(request)
 
         # ==================================================
-        # 10. RESPONSE
+        # 10. RETURN
         # ==================================================
 
         return {
@@ -942,6 +1021,11 @@ CrimeOS
     except requests.RequestException as e:
 
         db.rollback()
+
+        print(
+            "LEGAL REQUEST PDF DOWNLOAD ERROR:",
+            repr(e),
+        )
 
         raise HTTPException(
             status_code=500,
@@ -979,14 +1063,18 @@ CrimeOS
 
             try:
 
-                if os.path.exists(temp_path):
-                    os.unlink(temp_path)
+                if os.path.exists(
+                    temp_path
+                ):
+                    os.unlink(
+                        temp_path
+                    )
 
             except Exception as cleanup_error:
 
                 print(
                     "Warning: could not delete "
-                    "email temporary PDF:",
+                    "temporary email PDF:",
                     cleanup_error,
                 )
 
@@ -1003,11 +1091,58 @@ def get_case_legal_requests(
     case_id: str,
     db: Session = Depends(get_db),
 ):
+    """
+    Return all legal requests belonging to one case.
 
-    return (
+    Used by:
+
+        IO Case Details Page
+
+    This includes:
+        - Request information
+        - Sent status
+        - Response information
+        - AI response summary
+        - AI response data
+    """
+
+    # ======================================================
+    # VERIFY CASE EXISTS
+    # ======================================================
+
+    case_exists = (
+        db.execute(
+            text(
+                """
+                SELECT case_id
+                FROM cases
+                WHERE case_id = :case_id
+                LIMIT 1
+                """
+            ),
+            {
+                "case_id": case_id,
+            },
+        )
+        .first()
+    )
+
+    if not case_exists:
+
+        raise HTTPException(
+            status_code=404,
+            detail="Case not found",
+        )
+
+    # ======================================================
+    # GET REQUESTS
+    # ======================================================
+
+    requests_for_case = (
         db.query(LegalRequest)
         .filter(
-            LegalRequest.case_id == case_id
+            LegalRequest.case_id
+            == case_id
         )
         .order_by(
             LegalRequest.created_at.desc()
@@ -1015,13 +1150,24 @@ def get_case_legal_requests(
         .all()
     )
 
+    return requests_for_case
+
 
 # ==========================================================
 # TEST GMAIL RESPONSES
 # ==========================================================
 
-@router.get("/test-gmail-responses")
+@router.get(
+    "/test-gmail-responses"
+)
 def test_gmail_responses():
+    """
+    Development/testing endpoint.
+
+    Searches Gmail for CrimeOS-related emails.
+
+    It does not modify legal_requests.
+    """
 
     try:
 
@@ -1031,8 +1177,12 @@ def test_gmail_responses():
 
         return {
             "success": True,
-            "count": len(responses),
-            "responses": responses,
+
+            "emails_found":
+                len(responses),
+
+            "responses":
+                responses,
         }
 
     except Exception as e:
@@ -1047,14 +1197,22 @@ def test_gmail_responses():
             detail=str(e),
         )
 
+
 # ==========================================================
 # PROCESS GMAIL RESPONSES
 # ==========================================================
 
-@router.post("/process-gmail-responses")
+@router.post(
+    "/process-gmail-responses"
+)
 def process_gmail_response_route(
     db: Session = Depends(get_db),
 ):
+    """
+    Read Gmail responses, match them to legal_requests,
+    extract attachments, analyze them with AI, and update
+    the legal_requests table.
+    """
 
     try:
 
@@ -1078,6 +1236,8 @@ def process_gmail_response_route(
             status_code=500,
             detail=str(e),
         )
+
+
 # ==========================================================
 # GET SINGLE LEGAL REQUEST
 # ==========================================================
@@ -1090,6 +1250,9 @@ def get_legal_request(
     request_id: str,
     db: Session = Depends(get_db),
 ):
+    """
+    Get one legal request by request ID.
+    """
 
     request = (
         db.query(LegalRequest)
