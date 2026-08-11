@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -35,43 +35,33 @@ interface Officer {
   role: string;
 }
 
-export default function AssignCasePage() {
+function AssignCaseContent() {
   const searchParams = useSearchParams();
 
-  const complaintId =
-    searchParams.get("complaint_id");
+  const complaintId = searchParams.get("complaint_id");
 
-  const [complaint, setComplaint] =
-    useState<Complaint | null>(null);
+  const [complaint, setComplaint] = useState<Complaint | null>(null);
 
-  const [officers, setOfficers] =
-    useState<Officer[]>([]);
+  const [officers, setOfficers] = useState<Officer[]>([]);
 
-  const [selectedOfficer, setSelectedOfficer] =
-    useState("");
+  const [selectedOfficer, setSelectedOfficer] = useState("");
 
-  const [loadingComplaint, setLoadingComplaint] =
-    useState(true);
+  const [loadingComplaint, setLoadingComplaint] = useState(true);
 
-  const [loadingOfficers, setLoadingOfficers] =
-    useState(true);
+  const [loadingOfficers, setLoadingOfficers] = useState(true);
 
-  const [assigning, setAssigning] =
-    useState(false);
+  const [assigning, setAssigning] = useState(false);
 
-  const [error, setError] =
-    useState("");
+  const [error, setError] = useState("");
 
-  const [success, setSuccess] =
-    useState("");
+  const [success, setSuccess] = useState("");
 
   // ============================================================
   // API URL
   // ============================================================
 
   const apiUrl =
-    process.env.NEXT_PUBLIC_API_URL ||
-    "http://localhost:8000";
+    process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
   // ============================================================
   // FETCH COMPLAINT
@@ -79,10 +69,7 @@ export default function AssignCasePage() {
 
   async function fetchComplaint() {
     if (!complaintId) {
-      setError(
-        "No complaint was selected for assignment."
-      );
-
+      setError("No complaint was selected for assignment.");
       setLoadingComplaint(false);
       return;
     }
@@ -92,9 +79,7 @@ export default function AssignCasePage() {
       setError("");
 
       const response = await fetch(
-        `${apiUrl}/api/complaints/${encodeURIComponent(
-          complaintId
-        )}`,
+        `${apiUrl}/api/complaints/${encodeURIComponent(complaintId)}`,
         {
           method: "GET",
           credentials: "include",
@@ -128,10 +113,7 @@ export default function AssignCasePage() {
 
       setComplaint(data.complaint);
     } catch (err) {
-      console.error(
-        "Complaint loading error:",
-        err
-      );
+      console.error("Complaint loading error:", err);
 
       setError(
         err instanceof Error
@@ -151,14 +133,11 @@ export default function AssignCasePage() {
     try {
       setLoadingOfficers(true);
 
-      const response = await fetch(
-        `${apiUrl}/api/complaints/io`,
-        {
-          method: "GET",
-          credentials: "include",
-          cache: "no-store",
-        }
-      );
+      const response = await fetch(`${apiUrl}/api/complaints/io`, {
+        method: "GET",
+        credentials: "include",
+        cache: "no-store",
+      });
 
       if (!response.ok) {
         throw new Error(
@@ -169,17 +148,12 @@ export default function AssignCasePage() {
       const data = await response.json();
 
       if (!Array.isArray(data)) {
-        throw new Error(
-          "Invalid officer list received."
-        );
+        throw new Error("Invalid officer list received.");
       }
 
       setOfficers(data);
     } catch (err) {
-      console.error(
-        "Officer loading error:",
-        err
-      );
+      console.error("Officer loading error:", err);
 
       setError(
         err instanceof Error
@@ -206,16 +180,12 @@ export default function AssignCasePage() {
 
   async function handleAssignCase() {
     if (!complaintId) {
-      setError(
-        "No complaint selected."
-      );
+      setError("No complaint selected.");
       return;
     }
 
     if (!selectedOfficer) {
-      setError(
-        "Please select an Investigation Officer."
-      );
+      setError("Please select an Investigation Officer.");
       return;
     }
 
@@ -244,14 +214,12 @@ export default function AssignCasePage() {
 
       if (!response.ok) {
         throw new Error(
-          data?.detail ||
-            "Failed to assign case."
+          data?.detail || "Failed to assign case."
         );
       }
 
       setSuccess(
-        data?.message ||
-          "Case assigned successfully."
+        data?.message || "Case assigned successfully."
       );
 
       /*
@@ -265,12 +233,8 @@ export default function AssignCasePage() {
             }
           : previous
       );
-
     } catch (err) {
-      console.error(
-        "Case assignment error:",
-        err
-      );
+      console.error("Case assignment error:", err);
 
       setError(
         err instanceof Error
@@ -290,7 +254,6 @@ export default function AssignCasePage() {
     return (
       <div className="min-h-full bg-ivory">
         <div className="mx-auto max-w-[1100px] px-8 py-8">
-
           <Link
             href="/complaints"
             className="mb-6 inline-flex items-center gap-2 text-sm font-medium text-maroon-800 hover:text-maroon-600"
@@ -300,9 +263,7 @@ export default function AssignCasePage() {
           </Link>
 
           <div className="rounded-lg border border-red-200 bg-red-50 p-8">
-
             <div className="flex items-start gap-3">
-
               <AlertTriangle
                 size={20}
                 className="mt-0.5 text-red-700"
@@ -314,14 +275,11 @@ export default function AssignCasePage() {
                 </h2>
 
                 <p className="mt-1 text-sm text-red-700">
-                  Please open this page using the
-                  Assign Case button from the
-                  complaint listing.
+                  Please open this page using the Assign Case
+                  button from the complaint listing.
                 </p>
               </div>
-
             </div>
-
           </div>
         </div>
       </div>
@@ -334,9 +292,7 @@ export default function AssignCasePage() {
 
   return (
     <div className="min-h-full bg-ivory">
-
       <div className="mx-auto max-w-[1100px] px-8 py-8">
-
         {/* ================================================== */}
         {/* BACK */}
         {/* ================================================== */}
@@ -354,9 +310,7 @@ export default function AssignCasePage() {
         {/* ================================================== */}
 
         <div className="mb-6 rounded-lg border border-gold-200 bg-white px-6 py-5">
-
           <div className="flex items-start gap-4">
-
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-maroon-50 text-maroon-800">
               <UserPlus size={21} />
             </div>
@@ -371,13 +325,10 @@ export default function AssignCasePage() {
               </h1>
 
               <p className="mt-1 text-sm text-ink-600">
-                Assign this complaint to an
-                Investigation Officer.
+                Assign this complaint to an Investigation Officer.
               </p>
             </div>
-
           </div>
-
         </div>
 
         {/* ================================================== */}
@@ -386,20 +337,14 @@ export default function AssignCasePage() {
 
         {error && (
           <div className="mb-5 rounded-lg border border-red-200 bg-red-50 p-4">
-
             <div className="flex items-start gap-3">
-
               <AlertTriangle
                 size={18}
                 className="mt-0.5 shrink-0 text-red-700"
               />
 
-              <p className="text-sm text-red-800">
-                {error}
-              </p>
-
+              <p className="text-sm text-red-800">{error}</p>
             </div>
-
           </div>
         )}
 
@@ -409,16 +354,13 @@ export default function AssignCasePage() {
 
         {success && (
           <div className="mb-5 rounded-lg border border-green-200 bg-green-50 p-4">
-
             <div className="flex items-start gap-3">
-
               <CheckCircle2
                 size={18}
                 className="mt-0.5 shrink-0 text-green-700"
               />
 
               <div>
-
                 <p className="text-sm font-medium text-green-900">
                   {success}
                 </p>
@@ -429,11 +371,8 @@ export default function AssignCasePage() {
                 >
                   Return to complaints
                 </Link>
-
               </div>
-
             </div>
-
           </div>
         )}
 
@@ -442,15 +381,12 @@ export default function AssignCasePage() {
         {/* ================================================== */}
 
         <section className="rounded-lg border border-gold-200 bg-white p-6">
-
           <div className="mb-5 flex items-center gap-3 border-b border-gold-100 pb-4">
-
             <div className="flex h-9 w-9 items-center justify-center rounded-md bg-maroon-50 text-maroon-800">
               <AlertTriangle size={18} />
             </div>
 
             <div>
-
               <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-gold-700">
                 Complaint
               </p>
@@ -458,55 +394,42 @@ export default function AssignCasePage() {
               <h2 className="font-serif text-lg text-ink-900">
                 Complaint Summary
               </h2>
-
             </div>
-
           </div>
 
           {loadingComplaint ? (
             <LoadingBlock text="Loading complaint..." />
           ) : complaint ? (
             <>
-
               <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-
                 <InfoItem
                   label="Complaint Number"
-                  value={
-                    complaint.complaint_number
-                  }
+                  value={complaint.complaint_number}
                 />
 
                 <InfoItem
                   label="Crime Category"
-                  value={
-                    complaint.crime_category
-                  }
+                  value={complaint.crime_category}
                 />
 
                 <InfoItem
                   label="Crime Subcategory"
-                  value={
-                    complaint.crime_subcategory
-                  }
+                  value={complaint.crime_subcategory}
                 />
 
                 <InfoItem
                   label="Priority"
                   value={complaint.priority}
                 />
-
               </div>
 
               <div className="mt-5 grid gap-5 border-t border-gold-100 pt-5 sm:grid-cols-2">
-
                 <div>
                   <p className="text-xs font-medium uppercase tracking-wide text-ink-500">
                     Incident
                   </p>
 
                   <div className="mt-2 space-y-2">
-
                     {complaint.incident_date && (
                       <div className="flex items-center gap-2 text-sm text-ink-800">
                         <CalendarDays
@@ -514,9 +437,7 @@ export default function AssignCasePage() {
                           className="text-maroon-800"
                         />
 
-                        {formatDate(
-                          complaint.incident_date
-                        )}
+                        {formatDate(complaint.incident_date)}
 
                         {complaint.incident_time
                           ? ` · ${complaint.incident_time}`
@@ -526,19 +447,14 @@ export default function AssignCasePage() {
 
                     {complaint.location && (
                       <div className="flex items-start gap-2 text-sm text-ink-700">
-
                         <MapPin
                           size={15}
                           className="mt-0.5 shrink-0 text-maroon-800"
                         />
 
-                        <span>
-                          {complaint.location}
-                        </span>
-
+                        <span>{complaint.location}</span>
                       </div>
                     )}
-
                   </div>
                 </div>
 
@@ -548,19 +464,13 @@ export default function AssignCasePage() {
                   </p>
 
                   <div className="mt-2">
-                    <StatusBadge
-                      status={
-                        complaint.status
-                      }
-                    />
+                    <StatusBadge status={complaint.status} />
                   </div>
                 </div>
-
               </div>
 
               {complaint.description && (
                 <div className="mt-5 border-t border-gold-100 pt-5">
-
                   <p className="text-xs font-medium uppercase tracking-wide text-ink-500">
                     Description
                   </p>
@@ -568,17 +478,14 @@ export default function AssignCasePage() {
                   <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-ink-800">
                     {complaint.description}
                   </p>
-
                 </div>
               )}
-
             </>
           ) : (
             <div className="py-8 text-center text-sm text-ink-500">
               Complaint could not be loaded.
             </div>
           )}
-
         </section>
 
         {/* ================================================== */}
@@ -586,15 +493,12 @@ export default function AssignCasePage() {
         {/* ================================================== */}
 
         <section className="mt-6 rounded-lg border border-gold-200 bg-white p-6">
-
           <div className="mb-5 flex items-center gap-3 border-b border-gold-100 pb-4">
-
             <div className="flex h-9 w-9 items-center justify-center rounded-md bg-maroon-50 text-maroon-800">
               <User size={18} />
             </div>
 
             <div>
-
               <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-gold-700">
                 Investigation Officer
               </p>
@@ -602,16 +506,13 @@ export default function AssignCasePage() {
               <h2 className="font-serif text-lg text-ink-900">
                 Select Investigation Officer
               </h2>
-
             </div>
-
           </div>
 
           {loadingOfficers ? (
             <LoadingBlock text="Loading Investigation Officers..." />
           ) : officers.length === 0 ? (
             <div className="rounded-md border border-dashed border-gold-300 bg-ivory/50 p-8 text-center">
-
               <User
                 size={24}
                 className="mx-auto text-ink-400"
@@ -622,8 +523,8 @@ export default function AssignCasePage() {
               </p>
 
               <p className="mt-1 text-xs text-ink-500">
-                Make sure active users with the
-                IO role exist in the users table.
+                Make sure active users with the IO role exist in
+                the users table.
               </p>
 
               <button
@@ -634,11 +535,9 @@ export default function AssignCasePage() {
                 <RefreshCw size={14} />
                 Refresh Officers
               </button>
-
             </div>
           ) : (
             <div>
-
               <label
                 htmlFor="officer"
                 className="block text-sm font-medium text-ink-900"
@@ -647,12 +546,11 @@ export default function AssignCasePage() {
               </label>
 
               <p className="mt-1 text-xs text-ink-500">
-                Select the officer responsible for
-                investigating this case.
+                Select the officer responsible for investigating
+                this case.
               </p>
 
               <div className="relative mt-3">
-
                 <User
                   size={17}
                   className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-500"
@@ -662,14 +560,11 @@ export default function AssignCasePage() {
                   id="officer"
                   value={selectedOfficer}
                   onChange={(event) =>
-                    setSelectedOfficer(
-                      event.target.value
-                    )
+                    setSelectedOfficer(event.target.value)
                   }
                   disabled={assigning}
                   className="w-full appearance-none rounded-md border border-gold-200 bg-white py-3 pl-10 pr-10 text-sm text-ink-900 outline-none transition focus:border-maroon-700 focus:ring-1 focus:ring-maroon-700/20 disabled:cursor-not-allowed disabled:bg-ink-50"
                 >
-
                   <option value="">
                     Select an Investigation Officer
                   </option>
@@ -685,9 +580,7 @@ export default function AssignCasePage() {
                         : ""}
                     </option>
                   ))}
-
                 </select>
-
               </div>
 
               {/* SELECTED OFFICER */}
@@ -701,10 +594,8 @@ export default function AssignCasePage() {
                   )}
                 />
               )}
-
             </div>
           )}
-
         </section>
 
         {/* ================================================== */}
@@ -712,7 +603,6 @@ export default function AssignCasePage() {
         {/* ================================================== */}
 
         <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-
           <Link
             href="/complaints"
             className="inline-flex items-center justify-center rounded-md border border-gold-300 bg-white px-5 py-2.5 text-sm font-medium text-maroon-800 transition hover:bg-maroon-50"
@@ -748,9 +638,7 @@ export default function AssignCasePage() {
               </>
             )}
           </button>
-
         </div>
-
       </div>
     </div>
   );
@@ -769,7 +657,6 @@ function InfoItem({
 }) {
   return (
     <div>
-
       <p className="text-xs font-medium uppercase tracking-wide text-ink-500">
         {label}
       </p>
@@ -777,7 +664,6 @@ function InfoItem({
       <p className="mt-1 text-sm font-medium text-ink-900">
         {value || "—"}
       </p>
-
     </div>
   );
 }
@@ -797,13 +683,11 @@ function SelectedOfficer({
 
   return (
     <div className="mt-4 flex items-center gap-3 rounded-md border border-gold-200 bg-ivory/50 p-4">
-
       <div className="flex h-10 w-10 items-center justify-center rounded-full bg-maroon-50 text-maroon-800">
         <User size={18} />
       </div>
 
       <div>
-
         <p className="text-sm font-semibold text-ink-900">
           {officer.name}
         </p>
@@ -811,9 +695,7 @@ function SelectedOfficer({
         <p className="text-xs text-ink-500">
           {officer.email || "Investigation Officer"}
         </p>
-
       </div>
-
     </div>
   );
 }
@@ -827,8 +709,7 @@ function StatusBadge({
 }: {
   status?: string | null;
 }) {
-  const value =
-    status?.trim().toLowerCase() || "";
+  const value = status?.trim().toLowerCase() || "";
 
   let classes =
     "border border-ink-200 bg-ink-50 text-ink-700";
@@ -839,9 +720,7 @@ function StatusBadge({
   } else if (value === "assigned") {
     classes =
       "border border-purple-200 bg-purple-50 text-purple-700";
-  } else if (
-    value === "under investigation"
-  ) {
+  } else if (value === "under investigation") {
     classes =
       "border border-amber-200 bg-amber-50 text-amber-700";
   } else if (value === "closed") {
@@ -869,13 +748,9 @@ function LoadingBlock({
 }) {
   return (
     <div className="flex items-center gap-3 rounded-md bg-ivory/50 p-6">
-
       <div className="h-5 w-5 animate-spin rounded-full border-2 border-gold-200 border-t-maroon-800" />
 
-      <p className="text-sm text-ink-600">
-        {text}
-      </p>
-
+      <p className="text-sm text-ink-600">{text}</p>
     </div>
   );
 }
@@ -896,4 +771,30 @@ function formatDate(date: string) {
     month: "short",
     year: "numeric",
   });
+}
+
+// ============================================================
+// PAGE WRAPPER
+// ============================================================
+
+export default function AssignCasePage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-full bg-ivory">
+          <div className="mx-auto max-w-[1100px] px-8 py-8">
+            <div className="rounded-lg border border-gold-200 bg-white p-8 text-center">
+              <div className="mx-auto h-6 w-6 animate-spin rounded-full border-2 border-gold-200 border-t-maroon-800" />
+
+              <p className="mt-3 text-sm text-ink-600">
+                Loading assignment page...
+              </p>
+            </div>
+          </div>
+        </div>
+      }
+    >
+      <AssignCaseContent />
+    </Suspense>
+  );
 }
