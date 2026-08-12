@@ -17,17 +17,6 @@ export default function SuspectDetails({ suspects, setSuspects }: Props) {
     setSuspects(updated);
   }
 
-  function handlePhotoUpload(index: number, event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      const updated = suspects.map((entry, i) => i === index ? { ...entry, photoUrl: reader.result as string, photoName: file.name } : entry);
-      setSuspects(updated);
-    };
-    reader.readAsDataURL(file);
-  }
-
   function removeSuspect(index: number) {
     setSuspects(suspects.filter((_, i) => i !== index));
   }
@@ -42,7 +31,7 @@ export default function SuspectDetails({ suspects, setSuspects }: Props) {
         </div>
         <button
           type="button"
-          onClick={() => setSuspects([...suspects, { type: "Individual", name: "", contact: "", description: "", status: "Suspected" }])}
+          onClick={() => setSuspects([...suspects, { type: "Individual", name: "", contact: "", address: "", description: "", status: "Suspected" }])}
           className="rounded-md border border-maroon-600 bg-maroon-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-maroon-700"
         >
           Add suspect
@@ -90,7 +79,7 @@ export default function SuspectDetails({ suspects, setSuspects }: Props) {
                   value={suspect.contact}
                   onChange={(e) => handleFieldChange(index, "contact", e.target.value)}
                   className="w-full rounded-md border border-gold-200 bg-white px-3 py-2 text-sm text-ink-900 outline-none focus:border-maroon-600 focus:ring-1 focus:ring-maroon-600"
-                  placeholder="Phone, email, or residence"
+                  placeholder="Phone or email"
                 />
               </div>
               <div>
@@ -105,9 +94,19 @@ export default function SuspectDetails({ suspects, setSuspects }: Props) {
                   <option value="Highly Suspected">Highly Suspected</option>
                   <option value="At large">At large</option>
                   <option value="Arrested">Arrested</option>
-                  <option value="Under investigation">Under investigation</option>
                 </select>
               </div>
+            </div>
+
+            {/* NEW ADDRESS FIELD */}
+            <div className="mt-4">
+              <label className="mb-1 block text-sm font-medium text-ink-900">Address / Location</label>
+              <input
+                value={suspect.address || ""}
+                onChange={(e) => handleFieldChange(index, "address", e.target.value)}
+                className="w-full rounded-md border border-gold-200 bg-white px-3 py-2 text-sm text-ink-900 outline-none focus:border-maroon-600 focus:ring-1 focus:ring-maroon-600"
+                placeholder="Known address or hangout spots"
+              />
             </div>
 
             <div className="mt-4">

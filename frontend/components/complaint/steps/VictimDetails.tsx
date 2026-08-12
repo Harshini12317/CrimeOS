@@ -17,17 +17,6 @@ export default function VictimDetails({ victims, setVictims }: Props) {
     setVictims(updated);
   }
 
-  function handlePhotoUpload(index: number, event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      const updated = victims.map((entry, i) => i === index ? { ...entry, photoUrl: reader.result as string, photoName: file.name } : entry);
-      setVictims(updated);
-    };
-    reader.readAsDataURL(file);
-  }
-
   function removeVictim(index: number) {
     setVictims(victims.filter((_, i) => i !== index));
   }
@@ -42,7 +31,7 @@ export default function VictimDetails({ victims, setVictims }: Props) {
         </div>
         <button
           type="button"
-          onClick={() => setVictims([...victims, { type: "Individual", name: "", contact: "", statement: "" }])}
+          onClick={() => setVictims([...victims, { type: "Individual", name: "", contact: "", relationship: "", description: "", address: "", statement: "" }])}
           className="rounded-md border border-maroon-600 bg-maroon-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-maroon-700"
         >
           Add victim
@@ -90,9 +79,42 @@ export default function VictimDetails({ victims, setVictims }: Props) {
                   value={victim.contact}
                   onChange={(e) => handleFieldChange(index, "contact", e.target.value)}
                   className="w-full rounded-md border border-gold-200 bg-white px-3 py-2 text-sm text-ink-900 outline-none focus:border-maroon-600 focus:ring-1 focus:ring-maroon-600"
-                  placeholder="Phone, email, or address"
+                  placeholder="Phone or email"
                 />
               </div>
+              {/* NEW RELATIONSHIP FIELD */}
+              <div>
+                <label className="mb-1 block text-sm font-medium text-ink-900">Relationship to Suspect</label>
+                <input
+                  value={victim.relationship || ""}
+                  onChange={(e) => handleFieldChange(index, "relationship", e.target.value)}
+                  className="w-full rounded-md border border-gold-200 bg-white px-3 py-2 text-sm text-ink-900 outline-none focus:border-maroon-600 focus:ring-1 focus:ring-maroon-600"
+                  placeholder="e.g. Employee, Spouse, Stranger"
+                />
+              </div>
+            </div>
+
+            {/* NEW ADDRESS FIELD */}
+            <div className="mt-4">
+              <label className="mb-1 block text-sm font-medium text-ink-900">Address</label>
+              <input
+                value={victim.address || ""}
+                onChange={(e) => handleFieldChange(index, "address", e.target.value)}
+                className="w-full rounded-md border border-gold-200 bg-white px-3 py-2 text-sm text-ink-900 outline-none focus:border-maroon-600 focus:ring-1 focus:ring-maroon-600"
+                placeholder="Victim address"
+              />
+            </div>
+            
+            {/* NEW DESCRIPTION FIELD */}
+            <div className="mt-4">
+              <label className="mb-1 block text-sm font-medium text-ink-900">Description / Injuries</label>
+              <textarea
+                rows={2}
+                value={victim.description || ""}
+                onChange={(e) => handleFieldChange(index, "description", e.target.value)}
+                className="w-full rounded-md border border-gold-200 bg-white px-3 py-2 text-sm text-ink-900 outline-none focus:border-maroon-600 focus:ring-1 focus:ring-maroon-600"
+                placeholder="Physical description or note of injuries"
+              />
             </div>
 
             <div className="mt-4">
