@@ -37,30 +37,6 @@ class AssignCaseRequest(BaseModel):
     officer_id: str
 
 
-@router.get("/io")
-def get_investigation_officers(
-    db: Session = Depends(get_db),
-):
-    officers = (
-        db.query(User)
-        .filter(
-            User.role == Role.IO,
-            User.is_active == True,
-        )
-        .order_by(User.name.asc())
-        .all()
-    )
-
-    return [
-        {
-            "id": officer.id,
-            "name": officer.name,
-            "email": officer.email,
-            "role": officer.role.value,
-        }
-        for officer in officers
-    ]
-
 # ============================================================
 # GET ALL CRIME CATEGORIES
 # ============================================================

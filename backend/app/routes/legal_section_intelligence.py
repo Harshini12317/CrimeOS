@@ -1,9 +1,10 @@
 import json
 import re
 import traceback
-from typing import Optional
+import time
 import os
-from datetime import datetime 
+from typing import Optional
+from datetime import datetime
 import requests
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
@@ -15,15 +16,15 @@ from models.complaint import Complaint
 from models.legal_sections import LegalSection
 from models.landmarks import Landmark
 from models.legal_section_mappings import LegalSectionMapping
-from investigation.embedding import embed_query
 from models.case_summary import CaseSummary
-from investigation.case_summary_generator import generate_case_summary
 from models.legal_section_analysis import LegalSectionAnalysis
+from investigation.embedding import embed_query
+from investigation.case_summary_generator import generate_case_summary
 
 router = APIRouter(prefix="/api/complaints", tags=["legal-section-intelligence"])
 
 GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
-GROQ_MODEL = "openai/gpt-oss-20b"  # faster
+GROQ_MODEL = "openai/gpt-oss-20b"
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
 NEW_ACTS = {"BNS", "BNSS", "BSA"}
@@ -35,11 +36,6 @@ class AnalyzeRequest(BaseModel):
 
 
 # ---------- vector helpers ----------
-# models/_types.py's Vector is a plain UserDefinedType (no cosine_distance()
-# comparator like pgvector.sqlalchemy.Vector provides), so distance queries
-# are built as raw SQL using pgvector's `<=>` cosine-distance operator.
-# The literal is safe to interpolate directly: it's built entirely from
-# floats we generate ourselves (the query embedding), never from user input.
 
 def _vector_literal(embedding: list[float]) -> str:
     return "[" + ",".join(f"{v:.8f}" for v in embedding) + "]"
@@ -65,7 +61,7 @@ def _retrieve_candidates(db, case_summary: str, top_k_sections: int = 20, top_k_
     )
     sections = []
     for section, distance in section_rows:
-        section._similarity = 1 - distance  # transient attribute, not persisted
+        section._similarity = 1 - distance
         sections.append(section)
 
     judgment_distance = _cosine_distance_clause(query_embedding)
@@ -83,7 +79,7 @@ def _retrieve_candidates(db, case_summary: str, top_k_sections: int = 20, top_k_
     return sections, judgments
 
 
-# ---------- cross-referencing (BNS<->IPC, BNSS<->CrPC, BSA<->IEA) ----------
+# ---------- cross-referencing ----------
 
 def _word_boundary_pattern(section_number: str) -> str:
     return r"\y" + re.escape(section_number.strip()) + r"\y"
@@ -130,8 +126,6 @@ def _cross_references(db, act_code: str, section_number: str) -> list[dict]:
 
 
 # ---------- LLM reranking ----------
-
-import time
 
 def _rerank_with_llm(case_summary: str, sections: list, judgments: list, max_retries: int = 3):
     sections_text = "\n".join(
@@ -188,51 +182,47 @@ IMPORTANT: Only use "ref" values that exist in the lists above. Do NOT invent in
     }
 
     result = None
-    last_error = None
 
     for attempt in range(max_retries + 1):
-        response = requests.post(
-            GROQ_URL,
-            headers={
-                "Authorization": f"Bearer {GROQ_API_KEY}",
-                "Content-Type": "application/json",
-            },
-            json={
-                "model": GROQ_MODEL,
-                "messages": [{"role": "user", "content": prompt}],
-                "response_format": {
-                    "type": "json_schema",
-                    "json_schema": {"name": "reranking_result", "schema": schema}
-                },
-                "temperature": 0,
-            },
-            timeout=60,
-        )
-
-        if response.status_code == 429:
-            retry_after = int(response.headers.get("Retry-After", 5))
-            time.sleep(retry_after)
-            last_error = response.text
-            continue
-
-        if response.status_code == 400:
-            last_error = response.text
-            continue
-
-        response.raise_for_status()
-        raw = response.json()["choices"][0]["message"]["content"].strip()
-        raw = raw.replace("```json", "").replace("```", "").strip()
-
         try:
+            response = requests.post(
+                GROQ_URL,
+                headers={
+                    "Authorization": f"Bearer {GROQ_API_KEY}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": GROQ_MODEL,
+                    "messages": [{"role": "user", "content": prompt}],
+                    "response_format": {
+                        "type": "json_schema",
+                        "json_schema": {"name": "reranking_result", "schema": schema}
+                    },
+                    "temperature": 0,
+                },
+                timeout=60,
+            )
+
+            if response.status_code == 429:
+                retry_after = int(response.headers.get("Retry-After", 5))
+                time.sleep(retry_after)
+                continue
+
+            if response.status_code == 400:
+                continue
+
+            response.raise_for_status()
+            raw = response.json()["choices"][0]["message"]["content"].strip()
+            raw = raw.replace("```json", "").replace("```", "").strip()
+
             result = json.loads(raw)
             break
-        except json.JSONDecodeError:
-            last_error = raw
-            continue
+        except Exception as err:
+            print(f"Reranking attempt {attempt + 1} failed: {err}")
+            time.sleep(2)
 
     if result is None or (not result.get("sections") and not result.get("judgments")):
         print("WARNING: LLM reranking failed or returned empty. Using vector search fallbacks.")
-        # Fall back to top 5 vector matches with generic reason
         fallback_sections = [(s, "Matched based on vector similarity.") for s in sections[:5]]
         fallback_judgments = [(j, "Matched based on vector similarity.") for j in judgments[:3]]
         return fallback_sections, fallback_judgments
@@ -244,7 +234,7 @@ IMPORTANT: Only use "ref" values that exist in the lists above. Do NOT invent in
             if 0 <= idx < len(sections):
                 ranked_sections.append((sections[idx], item["relevance_reason"]))
         except (ValueError, KeyError, IndexError):
-            print(f"Skipping malformed section item: {item}")
+            pass
 
     ranked_judgments = []
     for item in result.get("judgments", []):
@@ -253,7 +243,7 @@ IMPORTANT: Only use "ref" values that exist in the lists above. Do NOT invent in
             if 0 <= idx < len(judgments):
                 ranked_judgments.append((judgments[idx], item["relevance_reason"]))
         except (ValueError, KeyError, IndexError):
-            print(f"Skipping malformed judgment item: {item}")
+            pass
 
     return ranked_sections, ranked_judgments
 
@@ -290,160 +280,40 @@ def _serialize_judgment(judgment: Landmark, reason: str) -> dict:
     }
 
 
-# ---------- endpoint ----------
+# ---------- ENDPOINTS ----------
 
 @router.get("/{complaint_id}/legal-sections")
 def get_legal_sections(complaint_id: str):
+    """
+    Fetch cached analysis instantly if it exists.
+    If not cached, trigger automatic initial analysis on-the-fly.
+    """
     db = SessionLocal()
     try:
-        complaint = db.query(Complaint).filter(Complaint.complaint_id == complaint_id).first()
-        if not complaint:
-            raise HTTPException(status_code=404, detail="Complaint not found")
-
-        # Fetch stored case summary if available
-        existing_summary = db.get(CaseSummary, complaint_id)
-        if not existing_summary:
-            raise HTTPException(
-                status_code=404, 
-                detail="No stored case summary found. Please run initial analysis."
-            )
-
-        case_summary = existing_summary.summary
-
-        # Retrieve & rerank candidates based on stored summary
-        sections, judgments = _retrieve_candidates(db, case_summary)
-        ranked_sections, ranked_judgments = _rerank_with_llm(case_summary, sections, judgments)
-
-        return {
-            "complaint_id": complaint_id,
-            "case_summary": case_summary,
-            "sections": [_serialize_section(db, s, reason) for s, reason in ranked_sections],
-            "judgments": [_serialize_judgment(j, reason) for j, reason in ranked_judgments],
-        }
-    except HTTPException:
-        raise
-    except Exception as e:
-        traceback.print_exc()
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to fetch legal sections: {type(e).__name__}: {e}",
-        )
-    finally:
-        db.close()
-
-# =====================================================================
-# 2. UPDATED POST ENDPOINT (Write / Re-analyze with Safe UPSERT)
-# =====================================================================
-@router.post("/{complaint_id}/legal-sections/analyze")
-def analyze_legal_sections(complaint_id: str, payload: AnalyzeRequest):
-    db = SessionLocal()
-    try:
-        complaint = (
-            db.query(Complaint)
-            .filter(Complaint.complaint_id == complaint_id)
-            .first()
-        )
-        if not complaint:
-            raise HTTPException(status_code=404, detail="Complaint not found")
-
-        case_summary = payload.case_summary
-
-        if case_summary and case_summary.strip():
-            # Officer explicitly supplied/edited a summary
-            existing = db.get(CaseSummary, complaint_id)
-            if existing:
-                existing.summary = case_summary.strip()
-                existing.is_manual_override = True
-                existing.model_used = None
-                if hasattr(existing, "updated_at"):
-                    existing.updated_at = datetime.utcnow()
-            else:
-                db.add(CaseSummary(
-                    complaint_id=complaint_id,
-                    summary=case_summary.strip(),
-                    is_manual_override=True,
-                    model_used=None,
-                ))
-            db.commit()
-
-        else:
-            # No summary passed — check for a stored one first.
-            existing = db.get(CaseSummary, complaint_id)
-            if existing:
-                case_summary = existing.summary
-            else:
-                # Nothing stored yet — generate one now (lazy generation).
-                generated = generate_case_summary(complaint)
-
-                if generated:
-                    case_summary = generated
-                    # Use db.merge to prevent IntegrityError if row was added concurrently
-                    summary_obj = CaseSummary(
-                        complaint_id=complaint_id,
-                        summary=generated,
-                        model_used=GROQ_MODEL,
-                        is_manual_override=False,
-                    )
-                    db.merge(summary_obj)
-                    db.commit()
-                else:
-                    # Fallback to raw description
-                    case_summary = complaint.description
-
-        if not case_summary or not case_summary.strip():
-            raise HTTPException(
-                status_code=422,
-                detail="No case summary available for this complaint. "
-                       "Pass `case_summary` in the request body.",
-            )
-
-        sections, judgments = _retrieve_candidates(db, case_summary)
-        ranked_sections, ranked_judgments = _rerank_with_llm(case_summary, sections, judgments)
-
-        return {
-            "complaint_id": complaint_id,
-            "case_summary": case_summary,
-            "sections": [_serialize_section(db, s, reason) for s, reason in ranked_sections],
-            "judgments": [_serialize_judgment(j, reason) for j, reason in ranked_judgments],
-        }
-    except HTTPException:
-        raise
-    except Exception as e:
-        db.rollback()
-        traceback.print_exc()
-        raise HTTPException(
-            status_code=500,
-            detail=f"Analysis failed: {type(e).__name__}: {e}",
-        )
-    finally:
-        db.close()
-
-
-# GET: Fetch cached results instantly
-@router.get("/{complaint_id}/legal-sections")
-def get_legal_sections(complaint_id: str):
-    db = SessionLocal()
-    try:
-        # Check if saved analysis exists
         analysis = db.get(LegalSectionAnalysis, complaint_id)
         summary = db.get(CaseSummary, complaint_id)
 
-        if not analysis or not summary:
-            raise HTTPException(status_code=404, detail="No cached analysis found.")
+        # 1. Return cached version instantly
+        if analysis and summary:
+            return {
+                "complaint_id": complaint_id,
+                "case_summary": summary.summary,
+                "sections": analysis.sections,
+                "judgments": analysis.judgments,
+            }
 
-        return {
-            "complaint_id": complaint_id,
-            "case_summary": summary.summary,
-            "sections": analysis.sections,
-            "judgments": analysis.judgments,
-        }
+        # 2. Cache miss: trigger analysis on the fly
+        db.close()  # close connection before calling POST route
+        return analyze_legal_sections(complaint_id, AnalyzeRequest())
     finally:
         db.close()
 
 
-# POST: Perform analysis, UPSERT analysis into DB, and return
 @router.post("/{complaint_id}/legal-sections/analyze")
 def analyze_legal_sections(complaint_id: str, payload: AnalyzeRequest):
+    """
+    Perform LLM analysis, UPSERT analysis into LegalSectionAnalysis cache table, and return.
+    """
     db = SessionLocal()
     try:
         complaint = db.query(Complaint).filter(Complaint.complaint_id == complaint_id).first()
@@ -458,25 +328,54 @@ def analyze_legal_sections(complaint_id: str, payload: AnalyzeRequest):
             if existing:
                 existing.summary = case_summary.strip()
                 existing.is_manual_override = True
+                existing.model_used = None
             else:
-                db.add(CaseSummary(complaint_id=complaint_id, summary=case_summary.strip(), is_manual_override=True))
+                db.add(CaseSummary(
+                    complaint_id=complaint_id,
+                    summary=case_summary.strip(),
+                    is_manual_override=True,
+                    model_used=None
+                ))
             db.commit()
         else:
             existing = db.get(CaseSummary, complaint_id)
-            case_summary = existing.summary if existing else complaint.description
+            if existing:
+                case_summary = existing.summary
+            else:
+                generated = generate_case_summary(complaint)
+                if generated:
+                    case_summary = generated
+                    summary_obj = CaseSummary(
+                        complaint_id=complaint_id,
+                        summary=generated,
+                        model_used=GROQ_MODEL,
+                        is_manual_override=False,
+                    )
+                    db.merge(summary_obj)
+                    db.commit()
+                else:
+                    case_summary = complaint.description
 
-        # 2. Retrieve & Rerank
+        if not case_summary or not case_summary.strip():
+            raise HTTPException(
+                status_code=422,
+                detail="No case summary available for this complaint.",
+            )
+
+        # 2. Retrieve & Rerank Candidates
         sections, judgments = _retrieve_candidates(db, case_summary)
         ranked_sections, ranked_judgments = _rerank_with_llm(case_summary, sections, judgments)
 
         serialized_sections = [_serialize_section(db, s, r) for s, r in ranked_sections]
         serialized_judgments = [_serialize_judgment(j, r) for j, r in ranked_judgments]
 
-        # 3. Save/Update LegalSectionAnalysis Table
+        # 3. UPSERT LegalSectionAnalysis Table
         analysis_record = db.get(LegalSectionAnalysis, complaint_id)
         if analysis_record:
             analysis_record.sections = serialized_sections
             analysis_record.judgments = serialized_judgments
+            if hasattr(analysis_record, "updated_at"):
+                analysis_record.updated_at = datetime.utcnow()
         else:
             db.add(LegalSectionAnalysis(
                 complaint_id=complaint_id,
@@ -491,8 +390,15 @@ def analyze_legal_sections(complaint_id: str, payload: AnalyzeRequest):
             "sections": serialized_sections,
             "judgments": serialized_judgments,
         }
+    except HTTPException:
+        db.rollback()
+        raise
     except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Analysis failed: {type(e).__name__}: {e}",
+        )
     finally:
         db.close()
