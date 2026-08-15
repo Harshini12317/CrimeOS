@@ -99,7 +99,7 @@ export default function InvestigationSopPage({
           {/* Header */}
           <div>
             <Link
-              href={`/investigation/ai-assistant/${caseId}`}
+              href={`/ai-assistant`}
               className="inline-flex items-center gap-1.5 text-xs font-medium text-maroon-700 hover:text-maroon-900 transition-colors"
             >
               <ArrowLeft className="h-3.5 w-3.5" /> Back to Case Assistant

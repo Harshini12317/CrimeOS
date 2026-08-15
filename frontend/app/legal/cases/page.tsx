@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import LegalCaseList from "@/components/legal/LegalCaseList";
+// import LegalCaseList from "@/components/legal/LegalCaseList";
 
 export default function LegalCasesPage() {
   const [search, setSearch] = useState("");
@@ -78,11 +78,11 @@ export default function LegalCasesPage() {
           </div>
 
           {/* Case Table */}
-          <LegalCaseList
+          {/* <LegalCaseList
             search={search}
             status={status}
             priority={priority}
-          />
+          /> */}
         </main>
       </div>
     </div>

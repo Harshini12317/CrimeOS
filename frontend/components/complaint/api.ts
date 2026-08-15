@@ -1,5 +1,6 @@
 import axios from "axios";
 
+
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL ||
   "http://localhost:8000";
@@ -20,29 +21,39 @@ export async function createComplainant(
     address?: string;
   }
 ) {
-  const response = await axios.post(
-    `${API_BASE}/api/complainants`,
-    {
-      complaint_id: complaintId,
 
-      name: complainant.name,
+  const response =
+    await axios.post(
+      `${API_BASE}/api/complainants`,
+      {
+        complaint_id:
+          complaintId,
 
-      contact:
-        complainant.contact || null,
+        name:
+          complainant.name,
 
-      relationship:
-        complainant.relationship || null,
+        contact:
+          complainant.contact ||
+          null,
 
-      statement:
-        complainant.statement || null,
+        relationship:
+          complainant.relationship ||
+          null,
 
-      type:
-        complainant.type || null,
+        statement:
+          complainant.statement ||
+          null,
 
-      address:
-        complainant.address || null,
-    }
-  );
+        type:
+          complainant.type ||
+          null,
+
+        address:
+          complainant.address ||
+          null,
+      }
+    );
+
 
   return response.data;
 }
@@ -65,35 +76,47 @@ export async function createVictim(
     photoUrl?: string;
   }
 ) {
-  const response = await axios.post(
-    `${API_BASE}/api/victims`,
-    {
-      complaint_id: complaintId,
 
-      name: victim.name,
+  const response =
+    await axios.post(
+      `${API_BASE}/api/victims`,
+      {
+        complaint_id:
+          complaintId,
 
-      contact:
-        victim.contact || null,
+        name:
+          victim.name,
 
-      relationship:
-        victim.relationship || null,
+        contact:
+          victim.contact ||
+          null,
 
-      statement:
-        victim.statement || null,
+        relationship:
+          victim.relationship ||
+          null,
 
-      type:
-        victim.type || null,
+        statement:
+          victim.statement ||
+          null,
 
-      description:
-        victim.description || null,
+        type:
+          victim.type ||
+          null,
 
-      address:
-        victim.address || null,
+        description:
+          victim.description ||
+          null,
 
-      photo_url:
-        victim.photoUrl || null,
-    }
-  );
+        address:
+          victim.address ||
+          null,
+
+        photo_url:
+          victim.photoUrl ||
+          null,
+      }
+    );
+
 
   return response.data;
 }
@@ -115,33 +138,94 @@ export async function createSuspect(
     photoUrl?: string;
   }
 ) {
-  const response = await axios.post(
-    `${API_BASE}/api/suspects`,
-    {
-      complaint_id: complaintId,
 
-      name:
-        suspect.name || null,
+  const response =
+    await axios.post(
+      `${API_BASE}/api/suspects`,
+      {
+        complaint_id:
+          complaintId,
 
-      contact:
-        suspect.contact || null,
+        name:
+          suspect.name ||
+          null,
 
-      description:
-        suspect.description || null,
+        contact:
+          suspect.contact ||
+          null,
 
-      status:
-        suspect.status || null,
+        description:
+          suspect.description ||
+          null,
 
-      type:
-        suspect.type || null,
+        status:
+          suspect.status ||
+          null,
 
-      address:
-        suspect.address || null,
+        type:
+          suspect.type ||
+          null,
 
-      photo_url:
-        suspect.photoUrl || null,
-    }
+        address:
+          suspect.address ||
+          null,
+
+        photo_url:
+          suspect.photoUrl ||
+          null,
+      }
+    );
+
+
+  return response.data;
+}
+
+
+// ==========================================================
+// UPLOAD PERSON PHOTO
+// ==========================================================
+
+export async function uploadPersonPhoto(
+  complaintId: string,
+  personType: "victim" | "suspect",
+  file: File
+) {
+
+  const formData =
+    new FormData();
+
+
+  formData.append(
+    "complaint_id",
+    complaintId
   );
+
+
+  formData.append(
+    "person_type",
+    personType
+  );
+
+
+  formData.append(
+    "file",
+    file,
+    file.name
+  );
+
+
+  /*
+   * Do NOT manually set Content-Type.
+   *
+   * Browser creates the multipart boundary.
+   */
+
+  const response =
+    await axios.post(
+      `${API_BASE}/api/person-photos/upload`,
+      formData
+    );
+
 
   return response.data;
 }
