@@ -5,7 +5,9 @@ export default function LegalAdvisorLayout({ children }: { children: React.React
   return (
     <DashboardLayout>
       <div className="flex">
-        <Sidebar />
+        <div className="sticky top-0 h-screen overflow-y-auto">
+                <Sidebar />
+                </div>
         <div className="flex-1">{children}</div>
       </div>
     </DashboardLayout>

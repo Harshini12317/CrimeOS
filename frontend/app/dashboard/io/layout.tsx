@@ -7,10 +7,11 @@ export default function IOLayout({
 }>) {
   return (
     <div className="flex min-h-screen">
-      <Sidebar />
+      <div className="sticky top-0 h-screen overflow-y-auto">
+        <Sidebar />
+      </div>
 
       <div className="flex flex-1 flex-col">
-
         <main className="flex-1 overflow-y-auto">{children}</main>
       </div>
     </div>
