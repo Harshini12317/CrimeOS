@@ -30,11 +30,7 @@ const menu = [
     matchPrefixes: ["/ai-assistant", "/investigation/ai-assistant"],
     icon: <FaLightbulb />,
   },
-  {
-    title: "Legal Requests",
-    href: "/investigation/legal-requests",
-    icon: <FaBalanceScaleRight />,
-  },
+  
   {
     title: "Case summary",
     href: "/case-summary",
