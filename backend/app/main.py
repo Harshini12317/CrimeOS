@@ -31,8 +31,14 @@ from app.routes.suspects import router as suspects_router
 from app.routes.evidences import router as evidences_router
 from app.routes import case
 
-from app.routes.legal_requests import router as legal_requests_router
-from app.routes.email_test import router as email_test_router
+from app.routes.legal_requests import (
+    router as legal_requests_router
+)
+
+from app.routes.email_test import (
+    router as email_test_router
+)
+from app.routes.person_photo import router as person_photo_router
 
 
 # ============================================================
@@ -127,9 +133,11 @@ app.include_router(
 app.include_router(
     audio.router,
     prefix="/api/v1/audio",
-    tags=["Audio"]
+    tags=["Audio"],
 )
-
+app.include_router(
+    person_photo_router
+)
 app.include_router(
     pdf.router,
     prefix="/api/v1/pdf",

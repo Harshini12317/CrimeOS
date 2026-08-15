@@ -1,7 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import {
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+
 import axios from "axios";
+
 import {
   CheckCircle2,
   RotateCcw,
@@ -14,20 +20,21 @@ import {
   createSuspect,
 } from "./api";
 
-import { useLanguage } from "@/app/providers/LanguageProvider";
-
 import Stepper from "./Stepper";
+
 import ComplaintDetails from "./steps/ComplaintDetails";
 import VictimDetails from "./steps/VictimDetails";
 import SuspectDetails from "./steps/SuspectDetails";
 import ComplainantDetails from "./steps/ComplainantDetails";
 import ReviewSubmission from "./steps/ReviewSubmission";
 import DocumentsAndEvidence from "./steps/DocumentsAndEvidence";
+
 import NavigationButtons from "./NavigationButtons";
 
 import {
   ComplaintData,
   UploadedFile,
+  PersonEntry,
 } from "./types";
 
 
@@ -39,47 +46,88 @@ const initialForm: ComplaintData = {
   complaintType: "",
 
   crimeCategory: "",
+
   crimeSubcategory: "",
 
   priority: "Medium",
 
   incidentDate: "",
+
   incidentTime: "",
 
   location: "",
+
   description: "",
 
   aiSummary: "",
+
   officerNotes: "",
+
+
+  // ----------------------------------------------------------
+  // COMPLAINANT
+  // ----------------------------------------------------------
 
   complainants: [
     {
       type: "Individual",
+
       name: "",
+
       contact: "",
+
       relationship: "",
+
       statement: "",
+
+      address: "",
     },
   ],
+
+
+  // ----------------------------------------------------------
+  // VICTIM
+  // ----------------------------------------------------------
 
   victims: [
     {
       type: "Individual",
+
       name: "",
+
       contact: "",
+
+      relationship: "",
+
       statement: "",
+
+      address: "",
+
+      description: "",
     },
   ],
+
+
+  // ----------------------------------------------------------
+  // SUSPECT
+  // ----------------------------------------------------------
 
   suspects: [
     {
       type: "Individual",
+
       name: "",
+
       contact: "",
+
       description: "",
+
       status: "Suspected",
+
+      address: "",
     },
   ],
+
 
   attachments: [],
 };
@@ -90,46 +138,98 @@ const initialForm: ComplaintData = {
 // ============================================================
 
 export default function ComplaintWizard() {
-  const { t } = useLanguage();
 
-  const [step, setStep] = useState(1);
+  const [step, setStep] =
+    useState(1);
+
 
   const [form, setForm] =
-    useState<ComplaintData>(initialForm);
+    useState<ComplaintData>(
+      initialForm
+    );
+
 
   const [submitted, setSubmitted] =
     useState(false);
 
+
   const [
     registeredComplaintNumber,
     setRegisteredComplaintNumber,
-  ] = useState<string | null>(null);
+  ] = useState<string | null>(
+    null
+  );
 
 
   // ==========================================================
-  // FILE / AI STATE
+  // EVIDENCE / AI STATE
   // ==========================================================
 
-  const [uploadedFiles, setUploadedFiles] =
-    useState<UploadedFile[]>([]);
+  const [
+    uploadedFiles,
+    setUploadedFiles,
+  ] = useState<UploadedFile[]>(
+    []
+  );
 
-  const [loadingExtraction, setLoadingExtraction] =
-    useState(false);
 
-  const [masterAiJson, setMasterAiJson] =
-    useState<any>(null);
+  const [
+    loadingExtraction,
+    setLoadingExtraction,
+  ] = useState(false);
+
+
+  const [
+    masterAiJson,
+    setMasterAiJson,
+  ] = useState<any>(null);
+
+
+  // ==========================================================
+  // SUBMISSION STATE
+  // ==========================================================
+
+  const [
+    isSubmitting,
+    setIsSubmitting,
+  ] = useState(false);
+
+
+  /*
+   * IMPORTANT:
+   *
+   * React state updates are asynchronous.
+   *
+   * Therefore we use a ref as an immediate lock.
+   *
+   * This prevents:
+   *
+   * Click 1
+   * Click 2 immediately
+   *
+   * from creating two complaints.
+   */
+
+  const isSubmittingRef =
+    useRef(false);
 
 
   // ==========================================================
   // NOTIFICATION
   // ==========================================================
 
-  const [notification, setNotification] =
-    useState<{
-      type: "success" | "error";
-      message: string;
-      submessage?: string;
-    } | null>(null);
+  const [
+    notification,
+    setNotification,
+  ] = useState<{
+    type:
+      | "success"
+      | "error";
+
+    message: string;
+
+    submessage?: string;
+  } | null>(null);
 
 
   // ==========================================================
@@ -138,108 +238,284 @@ export default function ComplaintWizard() {
 
   const totalSteps = 6;
 
-  const progressLabel = useMemo(
-    () => `Step ${step} of ${totalSteps}`,
-    [step]
-  );
+
+  const progressLabel =
+    useMemo(
+      () =>
+        `Step ${step} of ${totalSteps}`,
+      [step]
+    );
 
 
   // ==========================================================
-  // API BASE URL
+  // API BASE
   // ==========================================================
 
   const API_BASE =
-    process.env.NEXT_PUBLIC_API_BASE_URL ||
+    process.env
+      .NEXT_PUBLIC_API_BASE_URL ||
     "http://localhost:8000";
 
 
   // ==========================================================
-  // HELPER: EXTRACT TEXT FROM ONE FILE'S RESULT
+  // FASTAPI ERROR HELPER
+  // ==========================================================
+
+  function getErrorMessage(
+    error: any,
+    fallback: string
+  ): string {
+
+    const detail =
+      error?.response?.data?.detail;
+
+
+    /*
+     * Normal FastAPI error:
+     *
+     * {
+     *   "detail": "Complaint not found"
+     * }
+     */
+
+    if (
+      typeof detail ===
+      "string"
+    ) {
+      return detail;
+    }
+
+
+    /*
+     * FastAPI validation error:
+     *
+     * {
+     *   "detail": [
+     *      {
+     *        "loc": [...],
+     *        "msg": "Field required"
+     *      }
+     *   ]
+     * }
+     */
+
+    if (
+      Array.isArray(detail)
+    ) {
+
+      return detail
+        .map(
+          (
+            item: any
+          ) => {
+
+            const location =
+              Array.isArray(
+                item?.loc
+              )
+                ? item.loc.join(
+                    " → "
+                  )
+                : "Request";
+
+
+            const message =
+              item?.msg ||
+              "Validation error";
+
+
+            return `${location}: ${message}`;
+          }
+        )
+        .join("\n");
+    }
+
+
+    /*
+     * Generic object error
+     */
+
+    if (detail) {
+
+      try {
+
+        return JSON.stringify(
+          detail
+        );
+
+      } catch {
+
+        return fallback;
+      }
+    }
+
+
+    /*
+     * JavaScript Error
+     */
+
+    if (
+      typeof error?.message ===
+      "string"
+    ) {
+
+      return error.message;
+    }
+
+
+    return fallback;
+  }
+
+
+  // ==========================================================
+  // GET EXTRACTED TEXT
   // ==========================================================
 
   function getExtractedText(
     extraction: any
   ): string {
+
     if (!extraction) {
       return "";
     }
 
-    // PDF / Audio style
+
+    /*
+     * PDF / Audio
+     */
+
     const narrativeText =
-      extraction?.sections?.narrative_text;
+      extraction
+        ?.sections
+        ?.narrative_text;
+
 
     if (
-      typeof narrativeText === "string" &&
+      typeof narrativeText ===
+        "string" &&
       narrativeText.trim()
     ) {
+
       return narrativeText;
     }
 
-    // Generic text
+
+    /*
+     * Generic extracted text
+     */
+
     if (
-      typeof extraction?.text === "string" &&
+      typeof extraction?.text ===
+        "string" &&
       extraction.text.trim()
     ) {
+
       return extraction.text;
     }
 
+
     if (
-      typeof extraction?.extracted_text === "string" &&
+      typeof extraction
+        ?.extracted_text ===
+        "string" &&
       extraction.extracted_text.trim()
     ) {
+
       return extraction.extracted_text;
     }
 
-    // Image scene summary
+
+    /*
+     * Image extraction
+     */
+
     const sceneSummary =
-      extraction?.scene?.summary;
+      extraction
+        ?.scene
+        ?.summary;
+
 
     if (
-      typeof sceneSummary === "string" &&
+      typeof sceneSummary ===
+        "string" &&
       sceneSummary.trim()
     ) {
+
       return sceneSummary;
     }
+
 
     return "";
   }
 
 
   // ==========================================================
-  // HELPER: CREATE A SHORT SUMMARY
+  // GET EVIDENCE SUMMARY
   // ==========================================================
 
   function getEvidenceSummary(
     extraction: any
   ): string {
+
     if (!extraction) {
       return "";
     }
 
-    // PDF / audio key facts
+
+    /*
+     * Key facts
+     */
+
     if (
-      Array.isArray(extraction?.key_facts) &&
-      extraction.key_facts.length > 0
+      Array.isArray(
+        extraction?.key_facts
+      ) &&
+      extraction.key_facts.length >
+        0
     ) {
+
       return extraction.key_facts
-        .map((fact: any) => String(fact))
+        .map(
+          (fact: any) =>
+            String(fact)
+        )
         .join("\n");
     }
 
-    // Image scene
+
+    /*
+     * Image summary
+     */
+
     if (
-      typeof extraction?.scene?.summary === "string"
+      typeof extraction
+        ?.scene
+        ?.summary ===
+      "string"
     ) {
+
       return extraction.scene.summary;
     }
 
-    // PDF incident description
+
+    /*
+     * Incident description
+     */
+
     if (
-      typeof extraction?.sections?.incident_details?.description ===
-        "string"
+      typeof extraction
+        ?.sections
+        ?.incident_details
+        ?.description ===
+      "string"
     ) {
-      return extraction.sections.incident_details.description;
+
+      return extraction
+        .sections
+        .incident_details
+        .description;
     }
+
 
     return "";
   }
@@ -250,10 +526,18 @@ export default function ComplaintWizard() {
   // ==========================================================
 
   async function handleExtractClick() {
-    if (uploadedFiles.length === 0) {
+
+    if (
+      uploadedFiles.length ===
+      0
+    ) {
+
       setNotification({
         type: "error",
-        message: "No Evidence Selected",
+
+        message:
+          "No Evidence Selected",
+
         submessage:
           "Please upload at least one PDF, image, or audio file.",
       });
@@ -261,74 +545,136 @@ export default function ComplaintWizard() {
       return;
     }
 
-    setLoadingExtraction(true);
-    setNotification(null);
+
+    setLoadingExtraction(
+      true
+    );
+
+    setNotification(
+      null
+    );
+
 
     try {
+
+      /*
+       * First extraction:
+       *
+       * process all files.
+       *
+       * Subsequent extraction:
+       *
+       * process only newest file.
+       */
+
       const filesToProcess =
         masterAiJson === null
           ? uploadedFiles
           : [
               uploadedFiles[
-                uploadedFiles.length - 1
+                uploadedFiles.length -
+                  1
               ],
             ];
 
-      let runningMaster = masterAiJson;
-      let lastFileFormat = "";
 
-      // ------------------------------------------------------
-      // Process files
-      // ------------------------------------------------------
+      let runningMaster =
+        masterAiJson;
 
-      for (const item of filesToProcess) {
-        const targetFile = item.file;
 
-        const formData = new FormData();
+      let lastFileFormat =
+        "";
+
+
+      /*
+       * We maintain a local copy because React state
+       * updates are asynchronous.
+       */
+
+      let updatedFiles =
+        [...uploadedFiles];
+
+
+      // ======================================================
+      // PROCESS FILES
+      // ======================================================
+
+      for (
+        const item of filesToProcess
+      ) {
+
+        const targetFile =
+          item.file;
+
+
+        const formData =
+          new FormData();
+
 
         formData.append(
           "file",
           targetFile
         );
 
+
+        // ----------------------------------------------------
+        // DETERMINE ENDPOINT
+        // ----------------------------------------------------
+
         let endpoint =
           `${API_BASE}/api/v1/pdf/upload/`;
 
+
         if (
-          targetFile.type.startsWith("audio/")
+          targetFile.type.startsWith(
+            "audio/"
+          )
         ) {
+
           endpoint =
             `${API_BASE}/api/v1/audio/upload/`;
 
-          lastFileFormat = "Audio";
+          lastFileFormat =
+            "Audio";
 
         } else if (
-          targetFile.type.startsWith("image/")
+          targetFile.type.startsWith(
+            "image/"
+          )
         ) {
+
           endpoint =
             `${API_BASE}/api/v1/image/upload/`;
 
-          lastFileFormat = "Image";
+          lastFileFormat =
+            "Image";
 
         } else {
-          lastFileFormat = "PDF";
+
+          lastFileFormat =
+            "PDF";
         }
 
 
         // ----------------------------------------------------
-        // Individual extraction
+        // INDIVIDUAL EXTRACTION
         // ----------------------------------------------------
 
-        const response = await fetch(
-          endpoint,
-          {
-            method: "POST",
-            body: formData,
-          }
-        );
+        const response =
+          await fetch(
+            endpoint,
+            {
+              method: "POST",
+
+              body: formData,
+            }
+          );
 
 
-        if (!response.ok) {
+        if (
+          !response.ok
+        ) {
+
           throw new Error(
             `Evidence extraction failed (${response.status}).`
           );
@@ -339,35 +685,41 @@ export default function ComplaintWizard() {
           await response.json();
 
 
-        if (extractedJson?.error) {
+        if (
+          extractedJson?.error
+        ) {
+
           throw new Error(
-            extractedJson.error.message ||
+            extractedJson
+              ?.error
+              ?.message ||
               "Schema validation failed."
           );
         }
 
 
         // ----------------------------------------------------
-        // IMPORTANT:
-        // Store extraction on THIS specific file
+        // SAVE EXTRACTION TO FILE
         // ----------------------------------------------------
 
-        setUploadedFiles((previousFiles) =>
-          previousFiles.map((currentFile) =>
-            currentFile.id === item.id
-              ? {
-                  ...currentFile,
-                  extraction:
-                    extractedJson,
-                }
-              : currentFile
-          )
-        );
+        updatedFiles =
+          updatedFiles.map(
+            (currentFile) =>
+              currentFile.id ===
+              item.id
+                ? {
+                    ...currentFile,
+
+                    extraction:
+                      extractedJson,
+                  }
+                : currentFile
+          );
 
 
-        // ----------------------------------------------------
-        // Master Agent
-        // ----------------------------------------------------
+        // ====================================================
+        // MASTER COMBO AGENT
+        // ====================================================
 
         console.log(
           "Normalizing extracted evidence through Master Agent..."
@@ -378,25 +730,31 @@ export default function ComplaintWizard() {
           await fetch(
             `${API_BASE}/api/v1/combo/merge/`,
             {
-              method: "POST",
+              method:
+                "POST",
 
               headers: {
                 "Content-Type":
                   "application/json",
               },
 
-              body: JSON.stringify({
-                current_master:
-                  runningMaster || {},
+              body:
+                JSON.stringify({
+                  current_master:
+                    runningMaster ||
+                    {},
 
-                new_evidence:
-                  extractedJson,
-              }),
+                  new_evidence:
+                    extractedJson,
+                }),
             }
           );
 
 
-        if (!mergeResponse.ok) {
+        if (
+          !mergeResponse.ok
+        ) {
+
           throw new Error(
             "Failed to normalize evidence through Master Agent."
           );
@@ -408,15 +766,28 @@ export default function ComplaintWizard() {
 
 
         if (
-          filesToProcess.length > 1 ||
+          filesToProcess.length >
+            1 ||
           masterAiJson !== null
         ) {
-          lastFileFormat = "Merged";
+
+          lastFileFormat =
+            "Merged";
         }
       }
 
 
+      // ======================================================
+      // UPDATE FILE STATE
+      // ======================================================
+
+      setUploadedFiles(
+        updatedFiles
+      );
+
+
       if (!runningMaster) {
+
         throw new Error(
           "No information could be extracted from the evidence."
         );
@@ -429,18 +800,23 @@ export default function ComplaintWizard() {
 
 
       // ======================================================
-      // MAP MASTER JSON → FORM
+      // DATE FORMAT
       // ======================================================
 
-      let rawDate =
+      const rawDate =
         runningMaster
           ?.sections
           ?.incident_details
-          ?.date || "";
+          ?.date ||
+        "";
 
-      let formattedDate = "";
+
+      let formattedDate =
+        "";
+
 
       if (rawDate) {
+
         const dateMatch =
           rawDate.match(
             /(\d{4})[/-](\d{1,2})[/-](\d{1,2})/
@@ -449,10 +825,14 @@ export default function ComplaintWizard() {
             /(\d{1,2})[/-](\d{1,2})[/-](\d{4})/
           );
 
+
         if (dateMatch) {
+
           if (
-            dateMatch[1].length === 4
+            dateMatch[1]
+              .length === 4
           ) {
+
             formattedDate =
               `${dateMatch[1]}-${dateMatch[2].padStart(
                 2,
@@ -461,7 +841,9 @@ export default function ComplaintWizard() {
                 2,
                 "0"
               )}`;
+
           } else {
+
             formattedDate =
               `${dateMatch[3]}-${dateMatch[2].padStart(
                 2,
@@ -475,216 +857,383 @@ export default function ComplaintWizard() {
       }
 
 
-      setForm((prev) => {
-        const extractedSuspects =
-          runningMaster
-            ?.sections
-            ?.accused_details
-            ?.map(
-              (accused: any) => ({
-                type: "Individual",
+      // ======================================================
+      // MAP MASTER JSON → FORM
+      // ======================================================
 
-                name:
-                  accused.name ||
-                  "Unknown Suspect",
+      setForm(
+        (prev) => {
 
-                contact: "",
+          // --------------------------------------------------
+          // EXTRACT SUSPECTS
+          // --------------------------------------------------
 
-                status: "Suspected",
+          const extractedSuspects =
+            runningMaster
+              ?.sections
+              ?.accused_details
+              ?.map(
+                (
+                  accused: any
+                ) => {
 
-                address:
-                  accused.address || "",
+                  /*
+                   * Try to preserve photo information if
+                   * the same suspect already exists.
+                   */
 
-                description:
-                  accused.description ||
-                  "",
-              })
-            ) ||
-          prev.suspects;
-
-
-        const complainantName =
-          runningMaster
-            ?.sections
-            ?.complainant_details
-            ?.name || "";
-
-
-        const complainantPhone =
-          runningMaster
-            ?.sections
-            ?.complainant_details
-            ?.phone || "";
+                  const existingSuspect =
+                    prev.suspects.find(
+                      (
+                        existing
+                      ) =>
+                        existing.name
+                          ?.trim()
+                          .toLowerCase() ===
+                        accused.name
+                          ?.trim()
+                          .toLowerCase()
+                    );
 
 
-        const complainantAddr =
-          runningMaster
-            ?.sections
-            ?.complainant_details
-            ?.address ||
-          runningMaster
-            ?.sections
-            ?.incident_details
-            ?.location ||
-          "";
+                  return {
+                    type:
+                      "Individual",
+
+                    name:
+                      accused.name ||
+                      "Unknown Suspect",
+
+                    contact:
+                      existingSuspect
+                        ?.contact ||
+                      "",
+
+                    status:
+                      existingSuspect
+                        ?.status ||
+                      "Suspected",
+
+                    address:
+                      accused.address ||
+                      existingSuspect
+                        ?.address ||
+                      "",
+
+                    description:
+                      accused.description ||
+                      existingSuspect
+                        ?.description ||
+                      "",
+
+                    photoFile:
+                      existingSuspect
+                        ?.photoFile,
+
+                    photoName:
+                      existingSuspect
+                        ?.photoName,
+
+                    photoUrl:
+                      existingSuspect
+                        ?.photoUrl,
+                  };
+                }
+              ) ||
+            prev.suspects;
 
 
-        const incidentDesc =
-          runningMaster
-            ?.sections
-            ?.incident_details
-            ?.description ||
-          "";
+          // --------------------------------------------------
+          // COMPLAINANT
+          // --------------------------------------------------
+
+          const complainantName =
+            runningMaster
+              ?.sections
+              ?.complainant_details
+              ?.name ||
+            "";
 
 
-        const narrativeRaw =
-          runningMaster
-            ?.sections
-            ?.narrative_text ||
-          "";
+          const complainantPhone =
+            runningMaster
+              ?.sections
+              ?.complainant_details
+              ?.phone ||
+            "";
 
 
-        const keyFactsSummary =
-          runningMaster?.key_facts?.length > 0
-            ? runningMaster.key_facts
-                .map(
-                  (fact: string) =>
-                    `• ${fact}`
-                )
-                .join("\n")
-            : narrativeRaw ||
-              incidentDesc;
-
-
-        const complainantStatement =
-          narrativeRaw
-            ? `Complainant formal account: ${narrativeRaw}`
-            : "Formal statement recorded as per complaint.";
-
-
-        const victimStatement =
-          incidentDesc
-            ? `Victim account of property loss/incident: ${incidentDesc}`
-            : "Victim account recorded.";
-
-
-        const extractedComplainant = {
-          type: "Individual",
-
-          relationship: "Self",
-
-          name: complainantName,
-
-          contact: complainantPhone,
-
-          address: complainantAddr,
-
-          statement:
-            complainantStatement,
-        };
-
-
-        const autoVictim = {
-          type: "Individual",
-
-          name: complainantName,
-
-          contact: complainantPhone,
-
-          address: complainantAddr,
-
-          relationship: "Self",
-
-          statement:
-            victimStatement,
-        };
-
-
-        return {
-          ...prev,
-
-          location:
+          const complainantAddr =
+            runningMaster
+              ?.sections
+              ?.complainant_details
+              ?.address ||
             runningMaster
               ?.sections
               ?.incident_details
               ?.location ||
-            prev.location,
+            "";
 
-          description:
-            incidentDesc ||
-            prev.description,
 
-          aiSummary:
-            keyFactsSummary ||
-            prev.aiSummary,
+          // --------------------------------------------------
+          // INCIDENT
+          // --------------------------------------------------
 
-          incidentDate:
-            formattedDate ||
-            prev.incidentDate,
-
-          incidentTime:
+          const incidentDesc =
             runningMaster
               ?.sections
               ?.incident_details
-              ?.time ||
-            prev.incidentTime,
+              ?.description ||
+            "";
 
-          complainants:
-            complainantName
-              ? [extractedComplainant]
-              : prev.complainants,
 
-          victims:
-            complainantName
-              ? [autoVictim]
-              : prev.victims,
+          const narrativeRaw =
+            runningMaster
+              ?.sections
+              ?.narrative_text ||
+            "";
 
-          suspects:
-            extractedSuspects,
-        };
-      });
+
+          // --------------------------------------------------
+          // AI SUMMARY
+          // --------------------------------------------------
+
+          const keyFactsSummary =
+            runningMaster
+              ?.key_facts
+              ?.length > 0
+
+              ? runningMaster.key_facts
+                  .map(
+                    (
+                      fact: string
+                    ) =>
+                      `• ${fact}`
+                  )
+                  .join("\n")
+
+              : narrativeRaw ||
+                incidentDesc;
+
+
+          // --------------------------------------------------
+          // COMPLAINANT STATEMENT
+          // --------------------------------------------------
+
+          const complainantStatement =
+            narrativeRaw
+              ? `Complainant formal account: ${narrativeRaw}`
+              : "Formal statement recorded as per complaint.";
+
+
+          // --------------------------------------------------
+          // VICTIM STATEMENT
+          // --------------------------------------------------
+
+          const victimStatement =
+            incidentDesc
+              ? `Victim account of property loss/incident: ${incidentDesc}`
+              : "Victim account recorded.";
+
+
+          // --------------------------------------------------
+          // EXISTING PHOTO
+          // --------------------------------------------------
+
+          const existingVictim =
+            prev.victims[0];
+
+
+          // --------------------------------------------------
+          // EXTRACTED COMPLAINANT
+          // --------------------------------------------------
+
+          const extractedComplainant =
+            {
+              type:
+                "Individual",
+
+              relationship:
+                "Self",
+
+              name:
+                complainantName,
+
+              contact:
+                complainantPhone,
+
+              address:
+                complainantAddr,
+
+              statement:
+                complainantStatement,
+
+              photoFile:
+                prev.complainants[0]
+                  ?.photoFile,
+
+              photoName:
+                prev.complainants[0]
+                  ?.photoName,
+
+              photoUrl:
+                prev.complainants[0]
+                  ?.photoUrl,
+            };
+
+
+          // --------------------------------------------------
+          // AUTO VICTIM
+          // --------------------------------------------------
+
+          const autoVictim =
+            {
+              type:
+                "Individual",
+
+              name:
+                complainantName,
+
+              contact:
+                complainantPhone,
+
+              address:
+                complainantAddr,
+
+              relationship:
+                "Self",
+
+              statement:
+                victimStatement,
+
+              description:
+                existingVictim
+                  ?.description ||
+                "",
+
+              photoFile:
+                existingVictim
+                  ?.photoFile,
+
+              photoName:
+                existingVictim
+                  ?.photoName,
+
+              photoUrl:
+                existingVictim
+                  ?.photoUrl,
+            };
+
+
+          return {
+            ...prev,
+
+            location:
+              runningMaster
+                ?.sections
+                ?.incident_details
+                ?.location ||
+              prev.location,
+
+            description:
+              incidentDesc ||
+              prev.description,
+
+            aiSummary:
+              keyFactsSummary ||
+              prev.aiSummary,
+
+            incidentDate:
+              formattedDate ||
+              prev.incidentDate,
+
+            incidentTime:
+              runningMaster
+                ?.sections
+                ?.incident_details
+                ?.time ||
+              prev.incidentTime,
+
+            complainants:
+              complainantName
+                ? [
+                    extractedComplainant,
+                  ]
+                : prev.complainants,
+
+            victims:
+              complainantName
+                ? [autoVictim]
+                : prev.victims,
+
+            suspects:
+              extractedSuspects,
+          };
+        }
+      );
 
 
       // ======================================================
       // NOTIFICATION
       // ======================================================
 
-      if (lastFileFormat === "PDF") {
+      if (
+        lastFileFormat ===
+        "PDF"
+      ) {
+
         setNotification({
-          type: "success",
+          type:
+            "success",
+
           message:
             "PDF Complaint Processed",
+
           submessage:
             "Successfully extracted written complainant details, timeline, and incident notes.",
         });
 
       } else if (
-        lastFileFormat === "Audio"
+        lastFileFormat ===
+        "Audio"
       ) {
+
         setNotification({
-          type: "success",
+          type:
+            "success",
+
           message:
             "Voice Complaint Transcribed",
+
           submessage:
             "Speech-to-text completed and mapped to the complaint form.",
         });
 
       } else if (
-        lastFileFormat === "Image"
+        lastFileFormat ===
+        "Image"
       ) {
+
         setNotification({
-          type: "success",
+          type:
+            "success",
+
           message:
             "Visual Evidence Analyzed",
+
           submessage:
             "Analyzed visual evidence and extracted complainant/incident details.",
         });
 
       } else {
+
         setNotification({
-          type: "success",
+          type:
+            "success",
+
           message:
             "Evidence Successfully Merged",
+
           submessage:
             "The extracted information was consolidated into the complaint form.",
         });
@@ -693,22 +1242,35 @@ export default function ComplaintWizard() {
 
       setStep(2);
 
-    } catch (error: any) {
+    } catch (
+      error: any
+    ) {
+
       console.error(
         "Evidence extraction error:",
         error
       );
 
+
       setNotification({
-        type: "error",
-        message: "Extraction Failed",
+        type:
+          "error",
+
+        message:
+          "Extraction Failed",
+
         submessage:
-          error?.message ||
-          "Could not extract evidence. Please check the backend.",
+          getErrorMessage(
+            error,
+            "Could not extract evidence. Please check the backend."
+          ),
       });
 
     } finally {
-      setLoadingExtraction(false);
+
+      setLoadingExtraction(
+        false
+      );
     }
   }
 
@@ -720,21 +1282,98 @@ export default function ComplaintWizard() {
   function handleFilesChange(
     newFiles: UploadedFile[]
   ) {
+
+    /*
+     * If evidence is removed, reset Master AI because
+     * the existing master no longer represents the current
+     * evidence set.
+     */
+
     if (
       newFiles.length <
       uploadedFiles.length
     ) {
-      setMasterAiJson(null);
+
+      setMasterAiJson(
+        null
+      );
+
 
       setNotification({
-        type: "error",
-        message: "Evidence Removed",
+        type:
+          "error",
+
+        message:
+          "Evidence Removed",
+
         submessage:
           "The Master AI analysis was reset. Please click Extract again.",
       });
     }
 
-    setUploadedFiles(newFiles);
+
+    setUploadedFiles(
+      newFiles
+    );
+  }
+
+
+  // ==========================================================
+  // RESET
+  // ==========================================================
+
+  function resetAllData() {
+
+    if (
+      !confirm(
+        "Are you sure you want to clear all evidence and reset this form?"
+      )
+    ) {
+
+      return;
+    }
+
+
+    setUploadedFiles(
+      []
+    );
+
+
+    setMasterAiJson(
+      null
+    );
+
+
+    setNotification(
+      null
+    );
+
+
+    setRegisteredComplaintNumber(
+      null
+    );
+
+
+    setForm(
+      initialForm
+    );
+
+
+    setStep(1);
+
+
+    setSubmitted(
+      false
+    );
+
+
+    setIsSubmitting(
+      false
+    );
+
+
+    isSubmittingRef.current =
+      false;
   }
 
 
@@ -742,105 +1381,104 @@ export default function ComplaintWizard() {
   // SAVE ONE EVIDENCE
   // ==========================================================
 
- async function saveEvidence(
-  complaintId: string,
-  item: UploadedFile
-) {
-  const formData = new FormData();
+  async function saveEvidence(
+    complaintId: string,
+    item: UploadedFile
+  ) {
 
-  // Complaint ID
-  formData.append(
-    "complaint_id",
-    complaintId
-  );
+    const formData =
+      new FormData();
 
-  // Evidence type
-  formData.append(
-    "evidence_type",
-    item.type ||
-      item.file.type ||
-      "Unknown"
-  );
 
-  // Individual extraction for this file
-  formData.append(
-    "extraction_data",
-    JSON.stringify(
-      item.extraction || {}
-    )
-  );
+    // --------------------------------------------------------
+    // Complaint ID
+    // --------------------------------------------------------
 
-  // Extracted text
-  const extractedText =
-    getExtractedText(
-      item.extraction
+    formData.append(
+      "complaint_id",
+      complaintId
     );
 
-  formData.append(
-    "extracted_text",
-    extractedText || ""
-  );
 
-  // Summary
-  const summary =
-    getEvidenceSummary(
-      item.extraction
+    // --------------------------------------------------------
+    // Evidence type
+    // --------------------------------------------------------
+
+    formData.append(
+      "evidence_type",
+      item.type ||
+        item.file.type ||
+        "Unknown"
     );
 
-  formData.append(
-    "summary",
-    summary || ""
-  );
 
-  // IMPORTANT:
-  // File must be appended last as multipart file
-  formData.append(
-    "file",
-    item.file,
-    item.file.name
-  );
+    // --------------------------------------------------------
+    // Extraction JSON
+    // --------------------------------------------------------
 
-  // Debug
-  console.log(
-    "========== SAVING EVIDENCE =========="
-  );
+    formData.append(
+      "extraction_data",
+      JSON.stringify(
+        item.extraction ||
+          {}
+      )
+    );
 
-  console.log(
-    "complaint_id:",
-    complaintId
-  );
 
-  console.log(
-    "file:",
-    item.file.name
-  );
+    // --------------------------------------------------------
+    // Extracted text
+    // --------------------------------------------------------
 
-  console.log(
-    "file_type:",
-    item.file.type
-  );
+    formData.append(
+      "extracted_text",
+      getExtractedText(
+        item.extraction
+      )
+    );
 
-  console.log(
-    "evidence_type:",
-    item.type
-  );
 
-  console.log(
-    "extraction:",
-    item.extraction
-  );
+    // --------------------------------------------------------
+    // Summary
+    // --------------------------------------------------------
 
-  console.log(
-    "====================================="
-  );
+    formData.append(
+      "summary",
+      getEvidenceSummary(
+        item.extraction
+      )
+    );
 
-  const response = await axios.post(
-    `${API_BASE}/api/evidences/`,
-    formData
-  );
 
-  return response.data;
-}
+    // --------------------------------------------------------
+    // Actual file
+    // --------------------------------------------------------
+
+    formData.append(
+      "file",
+      item.file,
+      item.file.name
+    );
+
+
+    /*
+     * IMPORTANT:
+     *
+     * Do NOT manually set:
+     *
+     * Content-Type: multipart/form-data
+     *
+     * Axios/browser generates the multipart boundary.
+     */
+
+    const response =
+      await axios.post(
+        `${API_BASE}/api/evidences/`,
+        formData
+      );
+
+
+    return response.data;
+  }
 
 
   // ==========================================================
@@ -850,9 +1488,12 @@ export default function ComplaintWizard() {
   async function saveAllEvidence(
     complaintId: string
   ) {
+
     if (
-      uploadedFiles.length === 0
+      uploadedFiles.length ===
+      0
     ) {
+
       return;
     }
 
@@ -865,6 +1506,7 @@ export default function ComplaintWizard() {
     for (
       const item of uploadedFiles
     ) {
+
       await saveEvidence(
         complaintId,
         item
@@ -873,40 +1515,115 @@ export default function ComplaintWizard() {
 
 
     console.log(
-      `Saved ${uploadedFiles.length} evidence file(s).`
+      "All evidence saved successfully."
     );
   }
 
 
   // ==========================================================
-  // RESET
+  // UPLOAD PERSON PHOTO
   // ==========================================================
 
-  function resetAllData() {
+  async function uploadPersonPhoto(
+    complaintId: string,
+    personType:
+      | "victim"
+      | "suspect",
+    file: File
+  ): Promise<string> {
+
+    const formData =
+      new FormData();
+
+
+    formData.append(
+      "complaint_id",
+      complaintId
+    );
+
+
+    formData.append(
+      "person_type",
+      personType
+    );
+
+
+    formData.append(
+      "file",
+      file,
+      file.name
+    );
+
+
+    /*
+     * IMPORTANT:
+     *
+     * Again, don't manually set Content-Type.
+     */
+
+    const response =
+      await axios.post(
+        `${API_BASE}/api/person-photos/upload`,
+        formData
+      );
+
+
+    const url =
+      response.data?.url;
+
+
     if (
-      !confirm(
-        "Are you sure you want to clear all evidence and reset this form?"
-      )
+      !url
     ) {
-      return;
+
+      throw new Error(
+        `Cloudinary did not return a URL for the ${personType} photo.`
+      );
     }
 
 
-    setUploadedFiles([]);
+    return url;
+  }
 
-    setMasterAiJson(null);
 
-    setNotification(null);
+  // ==========================================================
+  // UPLOAD PERSON PHOTO IF NEEDED
+  // ==========================================================
 
-    setRegisteredComplaintNumber(
-      null
-    );
+  async function getPersonPhotoUrl(
+    complaintId: string,
+    person: PersonEntry,
+    personType:
+      | "victim"
+      | "suspect"
+  ): Promise<
+    string | undefined
+  > {
 
-    setForm(initialForm);
+    /*
+     * No new photo selected.
+     *
+     * If there is already a Cloudinary URL,
+     * keep it.
+     */
 
-    setStep(1);
+    if (
+      !person.photoFile
+    ) {
 
-    setSubmitted(false);
+      return person.photoUrl;
+    }
+
+
+    const url =
+      await uploadPersonPhoto(
+        complaintId,
+        personType,
+        person.photoFile
+      );
+
+
+    return url;
   }
 
 
@@ -915,36 +1632,88 @@ export default function ComplaintWizard() {
   // ==========================================================
 
   async function handleSubmit() {
-    setNotification(null);
+
+    // ========================================================
+    // IMMEDIATE DUPLICATE-SUBMISSION LOCK
+    // ========================================================
+
+    if (
+      isSubmittingRef.current
+    ) {
+
+      console.log(
+        "Submission already in progress. Ignoring duplicate click."
+      );
+
+      return;
+    }
+
+
+    /*
+     * Set the ref BEFORE doing anything asynchronous.
+     */
+
+    isSubmittingRef.current =
+      true;
+
+
+    setIsSubmitting(
+      true
+    );
+
+
+    setNotification({
+      type:
+        "success",
+
+      message:
+        "Submitting Complaint...",
+
+      submessage:
+        "Please wait while the complaint, evidence, photos, and people details are being saved.",
+    });
+
 
     try {
 
       // ======================================================
-      // 1. FRONTEND VALIDATION
+      // 1. VALIDATION
       // ======================================================
 
-      if (!form.crimeSubcategory) {
+      if (
+        !form.complaintType
+      ) {
+
         throw new Error(
-          "Please select a Crime Subcategory type."
+          "Please select a complaint type."
         );
       }
 
 
-      if (!form.crimeCategory) {
+      if (
+        !form.crimeCategory
+      ) {
+
         throw new Error(
           "Please select a crime category."
         );
       }
 
 
-      if (!form.crimeSubcategory) {
+      if (
+        !form.crimeSubcategory
+      ) {
+
         throw new Error(
           "Please select a crime subcategory."
         );
       }
 
 
-      if (!form.description.trim()) {
+      if (
+        !form.description.trim()
+      ) {
+
         throw new Error(
           "Please enter the incident description."
         );
@@ -955,42 +1724,44 @@ export default function ComplaintWizard() {
       // 2. CREATE COMPLAINT
       // ======================================================
 
-      const complaintPayload = {
-        complaint_type:
-          form.complaintType,
+      const complaintPayload =
+        {
 
-        crime_category:
-          form.crimeCategory,
+          complaint_type:
+            form.complaintType,
 
-        crime_subcategory:
-          form.crimeSubcategory,
+          crime_category:
+            form.crimeCategory,
 
-        priority:
-          form.priority,
+          crime_subcategory:
+            form.crimeSubcategory,
 
-        incident_date:
-          form.incidentDate ||
-          null,
+          priority:
+            form.priority,
 
-        incident_time:
-          form.incidentTime ||
-          null,
+          incident_date:
+            form.incidentDate ||
+            null,
 
-        location:
-          form.location.trim() ||
-          null,
+          incident_time:
+            form.incidentTime ||
+            null,
 
-        description:
-          form.description.trim(),
+          location:
+            form.location.trim() ||
+            null,
 
-        ai_summary:
-          form.aiSummary.trim() ||
-          null,
+          description:
+            form.description.trim(),
 
-        officer_notes:
-          form.officerNotes.trim() ||
-          null,
-      };
+          ai_summary:
+            form.aiSummary.trim() ||
+            null,
+
+          officer_notes:
+            form.officerNotes.trim() ||
+            null,
+        };
 
 
       console.log(
@@ -1017,15 +1788,21 @@ export default function ComplaintWizard() {
       // ======================================================
 
       const complaintId =
-        complaintResponse.data
-          .complaint_id;
+        complaintResponse
+          .data
+          ?.complaint_id;
+
 
       const complaintNumber =
-        complaintResponse.data
-          .complaint_number;
+        complaintResponse
+          .data
+          ?.complaint_number;
 
 
-      if (!complaintId) {
+      if (
+        !complaintId
+      ) {
+
         throw new Error(
           "Complaint was created but complaint_id was not returned by the backend."
         );
@@ -1042,25 +1819,9 @@ export default function ComplaintWizard() {
       // 4. SAVE EVIDENCE
       // ======================================================
 
-      try {
-        await saveAllEvidence(
-          complaintId
-        );
-      } catch (e: any) {
-        console.error(
-          "Evidence save failed:",
-          e
-        );
-
-        const evidenceMessage =
-          e?.response?.data?.detail ||
-          e?.message ||
-          "Unknown evidence saving error.";
-
-        throw new Error(
-          `Complaint was created, but evidence could not be saved: ${evidenceMessage}`
-        );
-      }
+      await saveAllEvidence(
+        complaintId
+      );
 
 
       // ======================================================
@@ -1078,9 +1839,26 @@ export default function ComplaintWizard() {
       for (
         const victim of validVictims
       ) {
+
+        /*
+         * Upload photo first if one exists.
+         */
+
+        const photoUrl =
+          await getPersonPhotoUrl(
+            complaintId,
+            victim,
+            "victim"
+          );
+
+
         await createVictim(
           complaintId,
-          victim
+          {
+            ...victim,
+
+            photoUrl:photoUrl
+          }
         );
       }
 
@@ -1105,9 +1883,26 @@ export default function ComplaintWizard() {
       for (
         const suspect of validSuspects
       ) {
+
+        /*
+         * Upload photo first if one exists.
+         */
+
+        const photoUrl =
+          await getPersonPhotoUrl(
+            complaintId,
+            suspect,
+            "suspect"
+          );
+
+
         await createSuspect(
           complaintId,
-          suspect
+          {
+            ...suspect,
+
+            photoUrl:photoUrl 
+          }
         );
       }
 
@@ -1130,8 +1925,10 @@ export default function ComplaintWizard() {
 
 
       for (
-        const complainant of validComplainants
+        const complainant of
+          validComplainants
       ) {
+
         await createComplainant(
           complaintId,
           complainant
@@ -1158,7 +1955,8 @@ export default function ComplaintWizard() {
       // ======================================================
 
       setNotification({
-        type: "success",
+        type:
+          "success",
 
         message:
           "Complaint Registered Successfully",
@@ -1172,10 +1970,13 @@ export default function ComplaintWizard() {
       });
 
 
-      setSubmitted(true);
+      setSubmitted(
+        true
+      );
 
-
-    } catch (error: any) {
+    } catch (
+      error: any
+    ) {
 
       console.error(
         "Complaint submission failed:",
@@ -1183,26 +1984,16 @@ export default function ComplaintWizard() {
       );
 
 
-      let message =
-        "Could not save the complaint.";
-
-
-      if (
-        error?.response?.data?.detail
-      ) {
-        message =
-          error.response.data.detail;
-
-      } else if (
-        error?.message
-      ) {
-        message =
-          error.message;
-      }
+      const message =
+        getErrorMessage(
+          error,
+          "Could not save the complaint."
+        );
 
 
       setNotification({
-        type: "error",
+        type:
+          "error",
 
         message:
           "Submission Failed",
@@ -1210,6 +2001,20 @@ export default function ComplaintWizard() {
         submessage:
           message,
       });
+
+    } finally {
+
+      /*
+       * Allow another attempt after the request finishes.
+       */
+
+      setIsSubmitting(
+        false
+      );
+
+
+      isSubmittingRef.current =
+        false;
     }
   }
 
@@ -1218,38 +2023,57 @@ export default function ComplaintWizard() {
   // SUCCESS SCREEN
   // ==========================================================
 
-  if (submitted) {
+  if (
+    submitted
+  ) {
+
     return (
       <div className="mx-auto flex max-w-4xl flex-col items-center justify-center rounded-lg border border-gold-200 bg-white p-10 text-center shadow-md">
 
         <div className="rounded-full bg-emerald-100 p-4 text-emerald-600">
-          <CheckCircle2 className="h-10 w-10" />
+
+          <CheckCircle2
+            className="h-10 w-10"
+          />
+
         </div>
 
 
         <h1 className="mt-6 text-3xl font-semibold text-ink-900">
+
           Complaint registered successfully
+
         </h1>
 
 
         {registeredComplaintNumber && (
+
           <div className="mt-6 rounded-lg border border-gold-200 bg-ivory px-8 py-5">
 
             <p className="text-xs font-semibold uppercase tracking-wider text-ink-600">
+
               Complaint Number
+
             </p>
 
 
             <p className="mt-1 text-2xl font-bold text-maroon-700">
-              {registeredComplaintNumber}
+
+              {
+                registeredComplaintNumber
+              }
+
             </p>
 
           </div>
+
         )}
 
 
         <p className="mt-4 max-w-xl text-base text-ink-600">
-          The complaint and its evidence have been saved successfully to the CrimeOS registry.
+
+          The complaint, evidence, photos, and related details have been saved successfully to the CrimeOS registry.
+
         </p>
 
 
@@ -1257,7 +2081,10 @@ export default function ComplaintWizard() {
           type="button"
 
           onClick={() => {
-            setSubmitted(false);
+
+            setSubmitted(
+              false
+            );
 
             setRegisteredComplaintNumber(
               null
@@ -1265,18 +2092,35 @@ export default function ComplaintWizard() {
 
             setStep(1);
 
-            setForm(initialForm);
+            setForm(
+              initialForm
+            );
 
-            setUploadedFiles([]);
+            setUploadedFiles(
+              []
+            );
 
-            setMasterAiJson(null);
+            setMasterAiJson(
+              null
+            );
 
-            setNotification(null);
+            setNotification(
+              null
+            );
+
+            setIsSubmitting(
+              false
+            );
+
+            isSubmittingRef.current =
+              false;
           }}
 
           className="mt-8 rounded-md border border-maroon-600 bg-maroon-600 px-5 py-3 text-sm font-medium text-white transition hover:bg-maroon-700"
         >
+
           Register another complaint
+
         </button>
 
       </div>
@@ -1291,22 +2135,32 @@ export default function ComplaintWizard() {
   return (
     <div className="w-full rounded-lg border border-gold-200 bg-white p-5 text-sm text-ink-600 shadow-sm">
 
+      {/* ==================================================== */}
       {/* HEADER */}
+      {/* ==================================================== */}
 
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
 
         <div>
 
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gold-700">
+
             Complaint Register
+
           </p>
 
+
           <h1 className="mt-1 text-2xl font-display text-ink-900">
+
             Register a new complaint
+
           </h1>
 
+
           <p className="mt-1 text-ink-600">
+
             Guided steps to capture evidence, complainant information, and case notes.
+
           </p>
 
         </div>
@@ -1314,7 +2168,9 @@ export default function ComplaintWizard() {
 
         <div className="flex items-center gap-2">
 
-          {uploadedFiles.length > 0 && (
+          {uploadedFiles.length >
+            0 && (
+
             <button
               type="button"
 
@@ -1322,12 +2178,22 @@ export default function ComplaintWizard() {
                 resetAllData
               }
 
-              className="flex items-center gap-1.5 rounded-md border border-gold-300 bg-ivory px-4 py-2 text-sm text-ink-900 transition-colors hover:bg-gold-50"
+              disabled={
+                isSubmitting ||
+                loadingExtraction
+              }
+
+              className="flex items-center gap-1.5 rounded-md border border-gold-300 bg-ivory px-4 py-2 text-sm text-ink-900 transition-colors hover:bg-gold-50 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <RotateCcw className="h-4 w-4 text-ink-600" />
+
+              <RotateCcw
+                className="h-4 w-4 text-ink-600"
+              />
 
               Reset Form
+
             </button>
+
           )}
 
 
@@ -1335,13 +2201,24 @@ export default function ComplaintWizard() {
             type="button"
 
             onClick={() => {
-              setNotification(null);
+
+              setNotification(
+                null
+              );
+
               setStep(2);
             }}
 
-            className="rounded-md border border-maroon-600 bg-maroon-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-maroon-700"
+            disabled={
+              isSubmitting ||
+              loadingExtraction
+            }
+
+            className="rounded-md border border-maroon-600 bg-maroon-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-maroon-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
+
             Complaint details
+
           </button>
 
         </div>
@@ -1349,34 +2226,53 @@ export default function ComplaintWizard() {
       </div>
 
 
+      {/* ==================================================== */}
       {/* PROGRESS */}
+      {/* ==================================================== */}
 
       <div className="mt-6 flex items-center justify-between gap-4 border-t border-gold-100 pt-4">
 
         <div className="rounded-md border border-gold-200 bg-ivory px-3 py-1.5 text-xs text-ink-600">
+
           {progressLabel}
+
         </div>
+
 
         <div className="text-xs text-ink-600">
+
           Complete each section carefully.
+
         </div>
 
       </div>
 
 
+      {/* ==================================================== */}
       {/* STEPPER */}
+      {/* ==================================================== */}
 
       <div className="mt-6">
-        <Stepper currentStep={step} />
+
+        <Stepper
+          currentStep={
+            step
+          }
+        />
+
       </div>
 
 
+      {/* ==================================================== */}
       {/* NOTIFICATION */}
+      {/* ==================================================== */}
 
       {notification && (
+
         <div
           className={`mt-6 flex items-start gap-3 rounded-lg border p-4 ${
-            notification.type === "success"
+            notification.type ===
+            "success"
               ? "border-emerald-200 bg-emerald-50 text-emerald-800"
               : "border-red-200 bg-red-50 text-red-800"
           }`}
@@ -1384,35 +2280,104 @@ export default function ComplaintWizard() {
 
           {notification.type ===
           "success" ? (
-            <CheckCircle2 className="mt-0.5 h-5 w-5 flex-shrink-0 text-emerald-600" />
+
+            <CheckCircle2
+              className="mt-0.5 h-5 w-5 flex-shrink-0 text-emerald-600"
+            />
+
           ) : (
-            <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-red-600" />
+
+            <AlertCircle
+              className="mt-0.5 h-5 w-5 flex-shrink-0 text-red-600"
+            />
+
           )}
 
 
           <div>
 
             <p className="font-semibold text-ink-900">
-              {notification.message}
+
+              {
+                notification.message
+              }
+
             </p>
 
+
             {notification.submessage && (
-              <p className="mt-0.5 text-xs opacity-90">
-                {notification.submessage}
+
+              <p className="mt-0.5 whitespace-pre-line text-xs opacity-90">
+
+                {
+                  notification.submessage
+                }
+
               </p>
+
             )}
 
           </div>
 
         </div>
+
       )}
 
 
+      {/* ==================================================== */}
+      {/* SUBMISSION LOADING */}
+      {/* ==================================================== */}
+
+      {isSubmitting && (
+
+        <div className="mt-6 overflow-hidden rounded-lg border border-gold-200 bg-ivory">
+
+          <div className="flex items-center gap-3 px-4 py-3">
+
+            <div className="h-5 w-5 animate-spin rounded-full border-2 border-gold-300 border-t-maroon-600" />
+
+
+            <div>
+
+              <p className="text-sm font-semibold text-ink-900">
+
+                Submitting complaint...
+
+              </p>
+
+
+              <p className="text-xs text-ink-600">
+
+                Please do not click Submit again.
+
+              </p>
+
+            </div>
+
+          </div>
+
+
+          <div className="h-1 w-full overflow-hidden bg-gold-100">
+
+            <div className="h-full w-1/3 animate-pulse bg-maroon-600" />
+
+          </div>
+
+        </div>
+
+      )}
+
+
+      {/* ==================================================== */}
       {/* CURRENT STEP */}
+      {/* ==================================================== */}
 
       <div className="mt-8">
 
+        {/* STEP 1 */}
+
         {step === 1 && (
+
           <DocumentsAndEvidence
             files={
               uploadedFiles
@@ -1430,100 +2395,180 @@ export default function ComplaintWizard() {
               loadingExtraction
             }
           />
+
         )}
 
+
+        {/* STEP 2 */}
 
         {step === 2 && (
+
           <ComplaintDetails
-            form={form}
-            setForm={setForm}
+            form={
+              form
+            }
+
+            setForm={
+              setForm
+            }
           />
+
         )}
 
 
+        {/* STEP 3 */}
+
         {step === 3 && (
+
           <VictimDetails
             victims={
               form.victims
             }
 
-            setVictims={(v) =>
-              setForm((p) => ({
-                ...p,
-                victims: v,
-              }))
+            setVictims={
+              (victims) =>
+                setForm(
+                  (prev) => ({
+                    ...prev,
+
+                    victims:
+                      victims,
+                  })
+                )
             }
           />
+
         )}
 
 
+        {/* STEP 4 */}
+
         {step === 4 && (
+
           <SuspectDetails
             suspects={
               form.suspects
             }
 
-            setSuspects={(s) =>
-              setForm((p) => ({
-                ...p,
-                suspects: s,
-              }))
+            setSuspects={
+              (suspects) =>
+                setForm(
+                  (prev) => ({
+                    ...prev,
+
+                    suspects:
+                      suspects,
+                  })
+                )
             }
           />
+
         )}
 
 
+        {/* STEP 5 */}
+
         {step === 5 && (
+
           <ComplainantDetails
             complainants={
               form.complainants
             }
 
-            setComplainants={(c) =>
-              setForm((p) => ({
-                ...p,
-                complainants: c,
-              }))
+            setComplainants={
+              (complainants) =>
+                setForm(
+                  (prev) => ({
+                    ...prev,
+
+                    complainants:
+                      complainants,
+                  })
+                )
             }
           />
+
         )}
 
 
+        {/* STEP 6 */}
+
         {step === 6 && (
+
           <ReviewSubmission
-            form={form}
+            form={
+              form
+            }
           />
+
         )}
 
       </div>
 
 
+      {/* ==================================================== */}
       {/* NAVIGATION */}
+      {/* ==================================================== */}
 
       <NavigationButtons
-        currentStep={step}
+
+        currentStep={
+          step
+        }
 
         totalSteps={
           totalSteps
         }
 
+
         onBack={() => {
-          if (step > 1) {
-            setNotification(null);
-            setStep(step - 1);
+
+          if (
+            step > 1 &&
+            !isSubmitting
+          ) {
+
+            setNotification(
+              null
+            );
+
+            setStep(
+              step - 1
+            );
           }
+
         }}
 
+
         onNext={() => {
-          if (step < totalSteps) {
-            setNotification(null);
-            setStep(step + 1);
+
+          if (
+            step <
+              totalSteps &&
+            !isSubmitting
+          ) {
+
+            setNotification(
+              null
+            );
+
+            setStep(
+              step + 1
+            );
           }
+
         }}
+
 
         onSubmit={
           handleSubmit
         }
+
+
+        isSubmitting={
+          isSubmitting
+        }
+
       />
 
     </div>
