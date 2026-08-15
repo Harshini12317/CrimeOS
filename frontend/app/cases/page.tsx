@@ -164,8 +164,9 @@ export default function CasesPage() {
         {/* ================================================= */}
         {/* IO SIDEBAR                                        */}
         {/* ================================================= */}
-
+        <div className="sticky top-0 h-screen overflow-y-auto">
         <IOSidebar />
+        </div>
 
         {/* ================================================= */}
         {/* MAIN CONTENT                                      */}

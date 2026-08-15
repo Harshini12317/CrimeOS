@@ -85,7 +85,9 @@ export default async function IOLegalRequestsPage() {
     <>
     <DashboardLayout>
     <div className="min-h-screen flex bg-gray-50">
-        <Sidebar />
+        <div className="sticky top-0 h-screen overflow-y-auto">
+                <Sidebar />
+                </div>
     <div className="p-8 max-w-7xl mx-auto">
       <div className="mb-6">
         <h1 className="font-serif text-3xl font-bold text-maroon-900">My Legal Requests</h1>
