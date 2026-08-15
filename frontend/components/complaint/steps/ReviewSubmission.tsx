@@ -19,12 +19,12 @@ export default function ReviewSubmission({ form }: Props) {
 
       <div className="grid gap-4 rounded-lg border border-gold-200 bg-ivory p-4 md:grid-cols-2">
         <div>
-          <p className="text-xs font-medium uppercase text-ink-600">Complaint type</p>
-          <p className="mt-1 text-sm font-medium text-ink-900">{form.complaintType || "Not provided"}</p>
+          <p className="text-xs font-medium uppercase text-ink-600">Complaint Category</p>
+          <p className="mt-1 text-sm font-medium text-ink-900">{form.crimeCategory || "Not provided"}</p>
         </div>
         <div>
-          <p className="text-xs font-medium uppercase text-ink-600">Category</p>
-          <p className="mt-1 text-sm font-medium text-ink-900">{form.crimeCategory || "Not provided"}</p>
+          <p className="text-xs font-medium uppercase text-ink-600">Crime Subcategory</p>
+          <p className="mt-1 text-sm font-medium text-ink-900">{form.crimeSubcategory || "Not provided"}</p>
         </div>
         <div>
           <p className="text-xs font-medium uppercase text-ink-600">Priority</p>

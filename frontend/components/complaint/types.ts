@@ -2,8 +2,13 @@ export interface UploadedFile {
   id: number;
   file: File;
   type: string;
+
+  // Cloudinary information
   cloudinaryUrl?: string;
   cloudinaryPublicId?: string;
+
+  // Extraction belonging specifically to THIS file
+  extraction?: any;
 }
 
 export interface AttachmentMeta {
@@ -11,9 +16,10 @@ export interface AttachmentMeta {
   fileName: string;
   fileType: string;
   documentUrl?: string;
+  cloudinaryPublicId?: string;
   extractedText?: string;
   summary?: string;
-  extraction?: any; // Simplified for brevity, your existing nested type is fine here too
+  extraction?: any;
 }
 
 export interface PersonEntry {
@@ -24,7 +30,7 @@ export interface PersonEntry {
   type?: string;
   description?: string;
   status?: string;
-  address?: string; // NEW: Added to match database!
+  address?: string;
   photoUrl?: string;
   photoName?: string;
 }
@@ -40,8 +46,10 @@ export interface ComplaintData {
   description: string;
   aiSummary: string;
   officerNotes: string;
+
   complainants: PersonEntry[];
   victims: PersonEntry[];
   suspects: PersonEntry[];
+
   attachments: AttachmentMeta[];
 }
