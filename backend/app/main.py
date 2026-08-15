@@ -47,6 +47,13 @@ app = FastAPI(
 # ============================================================
 # CORS
 # ============================================================
+    title="CrimeOS Backend"
+)
+
+
+# ============================================================
+# CORS
+# ============================================================
 
 app.add_middleware(
     CORSMiddleware,
@@ -55,7 +62,9 @@ app.add_middleware(
         "https://crimeos-frontend.onrender.com",
     ],
     allow_credentials=True,
+
     allow_methods=["*"],
+
     allow_headers=["*"],
 )
 
@@ -64,7 +73,13 @@ app.add_middleware(
 # GENERAL ROUTES
 # ============================================================
 
+
+# ============================================================
+# GENERAL ROUTES
+# ============================================================
+
 app.include_router(case.router)
+
 
 app.include_router(email_test_router)
 

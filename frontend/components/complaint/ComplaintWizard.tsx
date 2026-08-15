@@ -164,7 +164,7 @@ export default function ComplaintWizard() {
 
 
   // ==========================================================
-  // EXTRACT EVIDENCE
+  // EXTRACT EVIDENCE (PERFECTED MASTER AGENT)
   // ==========================================================
 
   async function handleExtractClick() {
@@ -172,10 +172,8 @@ export default function ComplaintWizard() {
       setNotification({
         type: "error",
         message: "No Evidence Selected",
-        submessage:
-          "Please upload at least one PDF, image, or audio file.",
+        submessage: "Please upload at least one PDF, image, or audio file.",
       });
-
       return;
     }
 
@@ -183,401 +181,206 @@ export default function ComplaintWizard() {
     setNotification(null);
 
     try {
-      /*
-       * If no master exists:
-       * process all files.
-       *
-       * If master already exists:
-       * process only the newest file.
-       */
-
       const filesToProcess =
         masterAiJson === null
           ? uploadedFiles
-          : [
-              uploadedFiles[
-                uploadedFiles.length - 1
-              ],
-            ];
-
+          : [uploadedFiles[uploadedFiles.length - 1]];
 
       let runningMaster = masterAiJson;
-
       let lastFileFormat = "";
 
-
       // ------------------------------------------------------
-      // Process files
+      // 1. Process files through specific ingestion
       // ------------------------------------------------------
-
       for (const item of filesToProcess) {
         const targetFile = item.file;
-
         const formData = new FormData();
-
-        formData.append(
-          "file",
-          targetFile
-        );
-
+        formData.append("file", targetFile);
 
         let endpoint = `${API_BASE}/api/v1/pdf/upload/`;
 
-
         if (targetFile.type.startsWith("audio/")) {
-          endpoint =
-            `${API_BASE}/api/v1/audio/upload/`;
-
+          endpoint = `${API_BASE}/api/v1/audio/upload/`;
           lastFileFormat = "Audio";
-
-        } else if (
-          targetFile.type.startsWith("image/")
-        ) {
-          endpoint =
-            `${API_BASE}/api/v1/image/upload/`;
-
+        } else if (targetFile.type.startsWith("image/")) {
+          endpoint = `${API_BASE}/api/v1/image/upload/`;
           lastFileFormat = "Image";
-
         } else {
           lastFileFormat = "PDF";
         }
 
-
-        const response = await fetch(
-          endpoint,
-          {
-            method: "POST",
-            body: formData,
-          }
-        );
-
+        const response = await fetch(endpoint, {
+          method: "POST",
+          body: formData,
+        });
 
         if (!response.ok) {
-          throw new Error(
-            `Evidence extraction failed (${response.status}).`
-          );
+          throw new Error(`Evidence extraction failed (${response.status}).`);
         }
 
-
-        const extractedJson =
-          await response.json();
-
-
-        // ----------------------------------------------------
-        // Backend schema error
-        // ----------------------------------------------------
+        const extractedJson = await response.json();
 
         if (extractedJson?.error) {
-          throw new Error(
-            extractedJson.error.message ||
-              "Schema validation failed."
-          );
-        }
-
-
-        // ----------------------------------------------------
-        // First file
-        // ----------------------------------------------------
-
-        if (runningMaster === null) {
-          runningMaster = extractedJson;
+          throw new Error(extractedJson.error.message || "Schema validation failed.");
         }
 
         // ----------------------------------------------------
-        // Additional files → merge
+        // 2. FORCE EVERYTHING THROUGH MASTER COMBO AGENT
         // ----------------------------------------------------
+        console.log("Normalizing extracted evidence through Master Agent...");
 
-        else {
-          const mergeResponse =
-            await fetch(
-              `${API_BASE}/api/v1/combo/merge/`,
-              {
-                method: "POST",
+        const mergeResponse = await fetch(`${API_BASE}/api/v1/combo/merge/`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            current_master: runningMaster || {},
+            new_evidence: extractedJson,
+          }),
+        });
 
-                headers: {
-                  "Content-Type":
-                    "application/json",
-                },
+        if (!mergeResponse.ok) {
+          throw new Error("Failed to normalize evidence through Master Agent.");
+        }
 
-                body: JSON.stringify({
-                  current_master:
-                    runningMaster,
-
-                  new_evidence:
-                    extractedJson,
-                }),
-              }
-            );
-
-
-          if (!mergeResponse.ok) {
-            throw new Error(
-              "Failed to merge extracted evidence."
-            );
-          }
-
-
-          runningMaster =
-            await mergeResponse.json();
-
+        runningMaster = await mergeResponse.json();
+        if (filesToProcess.length > 1 || masterAiJson !== null) {
           lastFileFormat = "Merged";
         }
       }
 
-
-      // ------------------------------------------------------
-      // Make sure something was extracted
-      // ------------------------------------------------------
-
       if (!runningMaster) {
-        throw new Error(
-          "No information could be extracted from the evidence."
-        );
+        throw new Error("No information could be extracted from the evidence.");
       }
 
-
-      setMasterAiJson(
-        runningMaster
-      );
-
+      setMasterAiJson(runningMaster);
 
       // ======================================================
-      // MAP AI RESULT → FORM
+      // MAP MASTER JSON → FORM (PERFECTED REFINEMENT)
       // ======================================================
 
-      const isImageOnly =
-        typeof runningMaster === "object" &&
-        runningMaster !== null &&
-        "scene" in runningMaster &&
-        !("sections" in runningMaster);
-
+      let rawDate = runningMaster?.sections?.incident_details?.date || "";
+      let formattedDate = "";
+      if (rawDate) {
+        const dateMatch = rawDate.match(/(\d{4})[/-](\d{1,2})[/-](\d{1,2})/) || rawDate.match(/(\d{1,2})[/-](\d{1,2})[/-](\d{4})/);
+        if (dateMatch) {
+          if (dateMatch[1].length === 4) {
+            formattedDate = `${dateMatch[1]}-${dateMatch[2].padStart(2, '0')}-${dateMatch[3].padStart(2, '0')}`;
+          } else {
+            formattedDate = `${dateMatch[3]}-${dateMatch[2].padStart(2, '0')}-${dateMatch[1].padStart(2, '0')}`;
+          }
+        }
+      }
 
       setForm((prev) => {
-
-        // ----------------------------------------------------
-        // IMAGE
-        // ----------------------------------------------------
-
-        if (isImageOnly) {
-          return {
-            ...prev,
-
-            location:
-              runningMaster?.scene
-                ?.location_type ||
-              prev.location,
-
-            description:
-              runningMaster?.scene
-                ?.summary ||
-              prev.description,
-
-            aiSummary:
-              `Visual Evidence Analysis. Weather: ${
-                runningMaster?.scene?.weather ||
-                "Unknown"
-              }. Lighting: ${
-                runningMaster?.scene?.lighting ||
-                "Unknown"
-              }.`,
-
-
-            suspects:
-              runningMaster?.people?.map(
-                (person: any) => ({
-                  type: "Individual",
-
-                  name:
-                    "Unknown Suspect",
-
-                  contact: "",
-
-                  status:
-                    "Suspected",
-
-                  description:
-                    `Activity: ${
-                      person.activity ||
-                      "Unknown"
-                    }. Details: ${
-                      person.description ||
-                      "Unknown"
-                    }.`,
-                })
-              ) || prev.suspects,
-          };
-        }
-
-
-        // ----------------------------------------------------
-        // PDF / AUDIO / COMBINED
-        // ----------------------------------------------------
-
         const extractedSuspects =
-          runningMaster?.sections
-            ?.accused_details
-            ?.map((accused: any) => ({
-              type: "Individual",
+          runningMaster?.sections?.accused_details?.map((accused: any) => ({
+            type: "Individual",
+            name: accused.name || "Unknown Suspect",
+            contact: "",
+            status: "Suspected",
+            address: accused.address || "",
+            description: accused.description || "",
+          })) || prev.suspects;
 
-              name:
-                accused.name ||
-                "Unknown Suspect",
+        const complainantName = runningMaster?.sections?.complainant_details?.name || "";
+        const complainantPhone = runningMaster?.sections?.complainant_details?.phone || "";
+        const complainantAddr = 
+          runningMaster?.sections?.complainant_details?.address || 
+          runningMaster?.sections?.incident_details?.location || "";
 
-              contact: "",
+        const incidentDesc = runningMaster?.sections?.incident_details?.description || "";
+        const narrativeRaw = runningMaster?.sections?.narrative_text || "";
 
-              status:
-                "Suspected",
+        // 1. MAKE AI SUMMARY DISTINCT: Use key_facts bullet points if available!
+        const keyFactsSummary = runningMaster?.key_facts?.length > 0
+          ? runningMaster.key_facts.map((fact: string) => `• ${fact}`).join("\n")
+          : narrativeRaw || incidentDesc;
 
-              description:
-                accused.description ||
-                "",
-            })) ||
-          prev.suspects;
+        // 2. MAKE COMPLAINANT STATEMENT DISTINCT
+        const complainantStatement = narrativeRaw 
+          ? `Complainant formal account: ${narrativeRaw}`
+          : "Formal statement recorded as per complaint.";
 
+        // 3. MAKE VICTIM STATEMENT DISTINCT
+        const victimStatement = incidentDesc
+          ? `Victim account of property loss/incident: ${incidentDesc}`
+          : "Victim account recorded.";
+
+        const extractedComplainant = {
+          type: "Individual",
+          relationship: "Self",
+          name: complainantName,
+          contact: complainantPhone,
+          address: complainantAddr,
+          statement: complainantStatement, // NOW DISTINCT!
+        };
+
+        const autoVictim = {
+          type: "Individual",
+          name: complainantName,
+          contact: complainantPhone,
+          address: complainantAddr,
+          relationship: "Self",
+          statement: victimStatement, // NOW DISTINCT!
+        };
 
         return {
           ...prev,
-
-          location:
-            runningMaster?.sections
-              ?.incident_details
-              ?.location ||
-            prev.location,
-
-          description:
-            runningMaster?.sections
-              ?.incident_details
-              ?.description ||
-            prev.description,
-
-          aiSummary:
-            runningMaster?.sections
-              ?.narrative_text ||
-            prev.aiSummary,
-
-          incidentDate:
-            runningMaster?.sections
-              ?.incident_details
-              ?.date ||
-            prev.incidentDate,
-
-
-          complainants: [
-            {
-              type: "Individual",
-
-              relationship: "Self",
-
-              name:
-                runningMaster?.sections
-                  ?.complainant_details
-                  ?.name || "",
-
-              contact:
-                runningMaster?.sections
-                  ?.complainant_details
-                  ?.phone || "",
-
-              statement:
-                `Address: ${
-                  runningMaster?.sections
-                    ?.complainant_details
-                    ?.address ||
-                  "N/A"
-                }.`,
-            },
-          ],
-
-
-          suspects:
-            extractedSuspects,
+          location: runningMaster?.sections?.incident_details?.location || prev.location,
+          description: incidentDesc || prev.description,
+          aiSummary: keyFactsSummary || prev.aiSummary, // NOW BULLET POINTS!
+          incidentDate: formattedDate || prev.incidentDate,
+          incidentTime: runningMaster?.sections?.incident_details?.time || prev.incidentTime,
+          complainants: complainantName ? [extractedComplainant] : prev.complainants,
+          victims: complainantName ? [autoVictim] : prev.victims,
+          suspects: extractedSuspects,
         };
       });
 
-
       // ======================================================
-      // NOTIFICATION
+      // 4. NOTIFICATION
       // ======================================================
 
       if (lastFileFormat === "PDF") {
         setNotification({
           type: "success",
-
-          message:
-            "PDF Complaint Processed",
-
-          submessage:
-            "Successfully extracted written complainant details, timeline, and incident notes.",
+          message: "PDF Complaint Processed",
+          submessage: "Successfully extracted written complainant details, timeline, and incident notes.",
         });
-
-      } else if (
-        lastFileFormat === "Audio"
-      ) {
+      } else if (lastFileFormat === "Audio") {
         setNotification({
           type: "success",
-
-          message:
-            "Voice Complaint Transcribed",
-
-          submessage:
-            "Speech-to-text completed and the extracted information was mapped to the complaint form.",
+          message: "Voice Complaint Transcribed",
+          submessage: "Speech-to-text completed and mapped to the complaint form.",
         });
-
-      } else if (
-        lastFileFormat === "Image"
-      ) {
+      } else if (lastFileFormat === "Image") {
         setNotification({
           type: "success",
-
-          message:
-            "Visual Evidence Analyzed",
-
-          submessage:
-            "The visual evidence was analyzed and relevant information was mapped to the complaint form.",
+          message: "Visual Evidence Analyzed",
+          submessage: "Analyzed visual evidence and extracted complainant/incident details.",
         });
-
       } else {
         setNotification({
           type: "success",
-
-          message:
-            "Evidence Successfully Merged",
-
-          submessage:
-            "The extracted information was consolidated into the complaint form.",
+          message: "Evidence Successfully Merged",
+          submessage: "The extracted information was consolidated into the complaint form.",
         });
       }
-
-
-      // ------------------------------------------------------
-      // Move to complaint details
-      // ------------------------------------------------------
 
       setStep(2);
 
     } catch (error: any) {
-      console.error(
-        "Evidence extraction error:",
-        error
-      );
-
+      console.error("Evidence extraction error:", error);
       setNotification({
         type: "error",
-
-        message:
-          "Extraction Failed",
-
-        submessage:
-          error?.message ||
-          "Could not extract evidence. Please check the backend.",
+        message: "Extraction Failed",
+        submessage: error?.message || "Could not extract evidence. Please check the backend.",
       });
-
     } finally {
       setLoadingExtraction(false);
     }
   }
-
-
+  
   // ==========================================================
   // FILE CHANGES
   // ==========================================================

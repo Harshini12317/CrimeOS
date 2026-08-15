@@ -8,21 +8,28 @@ import {
   useCallback,
   type ReactNode,
 } from "react";
+
 import { useRouter } from "next/navigation";
+
 import type { User, Role } from "../types/Auth";
 
 interface AuthContextValue {
   user: User | null;
   isLoading: boolean;
   error: string | null;
-  login: (email: string, password: string) => Promise<void>;
+
+  login: (
+    email: string,
+    password: string
+  ) => Promise<User>;
+
   logout: () => Promise<void>;
+
   hasRole: (...roles: Role[]) => boolean;
 }
 
-const AuthContext = createContext<AuthContextValue | undefined>(
-  undefined
-);
+const AuthContext =
+  createContext<AuthContextValue | undefined>(undefined);
 
 export function AuthProvider({
   children,
@@ -30,7 +37,9 @@ export function AuthProvider({
   children: ReactNode;
 }) {
   const [user, setUser] = useState<User | null>(null);
+
   const [isLoading, setIsLoading] = useState(true);
+
   const [error, setError] = useState<string | null>(null);
 
   const router = useRouter();
@@ -40,37 +49,87 @@ export function AuthProvider({
   // ============================================================
 
   const apiUrl =
-    process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+    process.env.NEXT_PUBLIC_API_URL ||
+    "http://localhost:8000";
 
   // ============================================================
-  // CHECK CURRENT USER
+  // INITIAL AUTH CHECK
   // ============================================================
 
   useEffect(() => {
-    async function checkAuth() {
-      try {
-        const res = await fetch(`${apiUrl}/api/auth/me`, {
-          method: "GET",
-          credentials: "include",
-        });
+    let mounted = true;
 
-        if (!res.ok) {
+    async function initializeAuth() {
+      try {
+        console.log(
+          "🔐 Checking authentication..."
+        );
+
+        const response = await fetch(
+          `${apiUrl}/api/auth/me`,
+          {
+            method: "GET",
+            credentials: "include",
+            cache: "no-store",
+          }
+        );
+
+        console.log(
+          "🔐 /api/auth/me status:",
+          response.status
+        );
+
+        if (!mounted) {
+          return;
+        }
+
+        if (!response.ok) {
           setUser(null);
           return;
         }
 
-        const data = await res.json();
+        const data = await response.json();
 
-        setUser(data.user ?? null);
+        /*
+         * Supports both:
+         *
+         * { user: {...} }
+         *
+         * and:
+         *
+         * {...}
+         */
+
+        const currentUser =
+          data?.user ?? data;
+
+        console.log(
+          "✅ Current user:",
+          currentUser
+        );
+
+        setUser(currentUser);
       } catch (error) {
-        console.error("Authentication check failed:", error);
-        setUser(null);
+        console.error(
+          "❌ Authentication check failed:",
+          error
+        );
+
+        if (mounted) {
+          setUser(null);
+        }
       } finally {
-        setIsLoading(false);
+        if (mounted) {
+          setIsLoading(false);
+        }
       }
     }
 
-    checkAuth();
+    initializeAuth();
+
+    return () => {
+      mounted = false;
+    };
   }, [apiUrl]);
 
   // ============================================================
@@ -78,49 +137,164 @@ export function AuthProvider({
   // ============================================================
 
   const login = useCallback(
-    async (email: string, password: string) => {
+    async (
+      email: string,
+      password: string
+    ): Promise<User> => {
       setError(null);
 
       try {
-        const res = await fetch(`${apiUrl}/api/auth/login`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-          body: JSON.stringify({
-            email,
-            password,
-          }),
-        });
+        console.log(
+          "🔐 Attempting login..."
+        );
+
+        // ------------------------------------------------------
+        // LOGIN REQUEST
+        // ------------------------------------------------------
+
+        const response = await fetch(
+          `${apiUrl}/api/auth/login`,
+          {
+            method: "POST",
+
+            headers: {
+              "Content-Type": "application/json",
+            },
+
+            /*
+             * IMPORTANT:
+             * Allows browser to receive/send
+             * the crimeos_token cookie.
+             */
+
+            credentials: "include",
+
+            body: JSON.stringify({
+              email: email.trim(),
+              password,
+            }),
+          }
+        );
+
+        console.log(
+          "🔐 Login response:",
+          response.status
+        );
+
+        // ------------------------------------------------------
+        // READ RESPONSE
+        // ------------------------------------------------------
 
         let data: any = {};
 
         try {
-          data = await res.json();
+          data = await response.json();
         } catch {
           data = {};
         }
 
-        if (!res.ok) {
+        // ------------------------------------------------------
+        // LOGIN FAILED
+        // ------------------------------------------------------
+
+        if (!response.ok) {
           const message =
             data?.error ||
             data?.detail ||
             "Login failed.";
 
+          console.error(
+            "❌ Login failed:",
+            message
+          );
+
           setError(message);
+
           throw new Error(message);
         }
 
-        setUser(data.user ?? null);
-      } catch (err) {
-        if (err instanceof Error) {
-          setError(err.message);
-          throw err;
+        console.log(
+          "✅ Login API successful"
+        );
+
+        // ------------------------------------------------------
+        // VERIFY AUTHENTICATION
+        // ------------------------------------------------------
+
+        /*
+         * Login should have created:
+         *
+         * crimeos_token
+         *
+         * as an HTTP-only cookie.
+         *
+         * Verify that the browser can now authenticate.
+         */
+
+        const meResponse = await fetch(
+          `${apiUrl}/api/auth/me`,
+          {
+            method: "GET",
+            credentials: "include",
+            cache: "no-store",
+          }
+        );
+
+        console.log(
+          "🔐 Verification /me status:",
+          meResponse.status
+        );
+
+        if (!meResponse.ok) {
+          throw new Error(
+            "Login succeeded, but the authentication session could not be verified."
+          );
         }
 
-        const message = "Login failed.";
+        const meData =
+          await meResponse.json();
+
+        const authenticatedUser =
+          meData?.user ?? meData;
+
+        if (!authenticatedUser) {
+          throw new Error(
+            "Authenticated user could not be retrieved."
+          );
+        }
+
+        console.log(
+          "✅ Authenticated user:",
+          authenticatedUser
+        );
+
+        // ------------------------------------------------------
+        // SAVE USER
+        // ------------------------------------------------------
+
+        setUser(authenticatedUser);
+
+        // ------------------------------------------------------
+        // RETURN USER TO LOGIN PAGE
+        // ------------------------------------------------------
+
+        return authenticatedUser;
+      } catch (error) {
+        console.error(
+          "❌ Login error:",
+          error
+        );
+
+        if (error instanceof Error) {
+          setError(error.message);
+          throw error;
+        }
+
+        const message =
+          "Login failed.";
+
         setError(message);
+
         throw new Error(message);
       }
     },
@@ -133,15 +307,22 @@ export function AuthProvider({
 
   const logout = useCallback(async () => {
     try {
-      await fetch(`${apiUrl}/api/auth/logout`, {
-        method: "POST",
-        credentials: "include",
-      });
+      await fetch(
+        `${apiUrl}/api/auth/logout`,
+        {
+          method: "POST",
+          credentials: "include",
+        }
+      );
     } catch (error) {
-      console.error("Logout request failed:", error);
+      console.error(
+        "❌ Logout request failed:",
+        error
+      );
     } finally {
       setUser(null);
-      router.push("/login");
+
+      router.replace("/login");
     }
   }, [apiUrl, router]);
 
@@ -150,10 +331,18 @@ export function AuthProvider({
   // ============================================================
 
   const hasRole = useCallback(
-    (...roles: Role[]) =>
-      !!user && roles.includes(user.role),
+    (...roles: Role[]) => {
+      return (
+        !!user &&
+        roles.includes(user.role)
+      );
+    },
     [user]
   );
+
+  // ============================================================
+  // PROVIDER
+  // ============================================================
 
   return (
     <AuthContext.Provider
@@ -176,13 +365,14 @@ export function AuthProvider({
 // ============================================================
 
 export function useAuth(): AuthContextValue {
-  const ctx = useContext(AuthContext);
+  const context =
+    useContext(AuthContext);
 
-  if (!ctx) {
+  if (!context) {
     throw new Error(
       "useAuth must be used inside <AuthProvider>"
     );
   }
 
-  return ctx;
+  return context;
 }
