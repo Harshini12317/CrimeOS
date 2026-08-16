@@ -2,70 +2,136 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+
 import {
   FaHome,
   FaClipboardList,
   FaChartBar,
-  FaMapMarkedAlt,
-  FaCog,
+  FaBook,
   FaWatchmanMonitoring,
-  FaUserFriends,
 } from "react-icons/fa";
-import { Fa0, FaAnchorCircleCheck } from "react-icons/fa6";
 
 const menu = [
   {
     title: "Dashboard",
-    href: "/dashboard/sho",    // total complaints, active cases, pending assignments, closed cases
+    href: "/dashboard/sho",
     icon: <FaHome />,
   },
+
   {
     title: "Register Complaints",
-    href: "/complaints/register",    //complaint registration
-    icon: <FaHome />,
-  },
-  {
-    title: "Complaints",
-    href: "/complaints",        // List of complaints
+    href: "/complaints/register",
     icon: <FaClipboardList />,
   },
-  
+
   {
-    title: "Case Monitoring",
-    href: "/cases",            // investigation progress, pending approvals, case timeline, officer workload
+    title: "Complaints",
+    href: "/complaints",
+    matchPrefixes: [
+      "/complaints",
+    ],
+    icon: <FaClipboardList />,
+  },
+
+  {
+    title: "All Cases",
+    href: "/cases",
+    matchPrefixes: [
+      "/cases",
+      "/investigation/cases",
+    ],
     icon: <FaWatchmanMonitoring />,
   },
+
   {
-    title: "Reports",
-    href: "/reports",           // crime statistics, monthly reports, officer performance
-    icon: <FaChartBar />,
+    title: "Case Summary",
+    href: "/case-summary",
+    icon: <FaBook />,
   },
 ];
 
-export default function Sidebar() {
+export default function SHOSidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="w-64 bg-maroon-800 text-ivory min-h-screen p-5 flex flex-col">
-
+    <aside
+      className="
+        fixed
+        left-0
+        top-0
+        z-40
+        h-screen
+        w-64
+        overflow-y-auto
+        bg-maroon-800
+        p-5
+        text-ivory
+      "
+    >
       <nav className="space-y-1">
+
         {menu.map((item) => {
-          const active = pathname === item.href;
+
+          const active =
+            pathname === item.href ||
+            item.matchPrefixes?.some(
+              (prefix) =>
+                pathname.startsWith(prefix)
+            );
+
           return (
             <Link
               key={item.title}
               href={item.href}
-              className={`flex items-center gap-3 p-3 rounded-md border-l-2 transition-colors ${
-                active
-                  ? "bg-maroon-700 border-gold-500 text-gold-300"
-                  : "border-transparent text-ivory/80 hover:bg-maroon-700 hover:border-gold-500/50 hover:text-gold-200"
-              }`}
+              className={`
+                flex
+                items-center
+                gap-3
+                rounded-md
+                border-l-4
+                p-3
+                transition-colors
+
+                ${
+                  active
+                    ? `
+                      border-gold-400
+                      bg-maroon-900/60
+                      font-bold
+                      text-gold-300
+                      shadow-sm
+                    `
+                    : `
+                      border-transparent
+                      font-medium
+                      text-ivory/80
+                      hover:border-gold-500/50
+                      hover:bg-maroon-700
+                      hover:text-gold-200
+                    `
+                }
+              `}
             >
-              <span className="text-base">{item.icon}</span>
-              <span className="text-sm font-medium">{item.title}</span>
+              <span
+                className={`
+                  text-base
+                  ${
+                    active
+                      ? "text-gold-400"
+                      : ""
+                  }
+                `}
+              >
+                {item.icon}
+              </span>
+
+              <span className="text-sm">
+                {item.title}
+              </span>
             </Link>
           );
         })}
+
       </nav>
     </aside>
   );

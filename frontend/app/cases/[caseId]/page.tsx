@@ -1690,27 +1690,19 @@ export default function CaseDetailsPage() {
                 <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
 
                   <InfoItem
-                    label="District"
-                    value={
-                      currentCase.district
-                    }
-                  />
+  label="District"
+  value="Surat"
+/>
 
-                  <InfoItem
-                    label="Police Station"
-                    value={
-                      currentCase.police_station
-                    }
-                  />
+<InfoItem
+  label="Police Station"
+  value="Surat Police Station"
+/>
 
-                  <InfoItem
-                    label="Incident Date & Time"
-                    value={
-                      formatDateTime(
-                        currentCase.incident_datetime
-                      )
-                    }
-                  />
+<InfoItem
+  label="Incident Date & Time"
+  value={formatDateTime(currentCase.incident_datetime)}
+/>
 
                 </div>
 
@@ -1759,67 +1751,9 @@ export default function CaseDetailsPage() {
               </Section>
 
 
-              {/* =================================================
-                  COURT
-              ================================================= */}
+             
 
-              <Section
-                label="Case"
-                title="Court & Chargesheet"
-                icon={
-                  <Building2 size={18} />
-                }
-              >
-
-                <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-
-                  <InfoItem
-                    label="Court Name"
-                    value={
-                      currentCase.court_name
-                    }
-                  />
-
-                  <InfoItem
-                    label="Court Number"
-                    value={
-                      currentCase.court_no
-                    }
-                  />
-
-                  <InfoItem
-                    label="Original Chargesheet No."
-                    value={
-                      currentCase.original_chargesheet_no
-                    }
-                  />
-
-                  <InfoItem
-                    label="Original Chargesheet Date"
-                    value={
-                      formatDate(
-                        currentCase.original_chargesheet_date
-                      )
-                    }
-                  />
-
-                  <InfoItem
-                    label="Supplementary Chargesheet No."
-                    value={
-                      currentCase.supplementary_chargesheet_no
-                    }
-                  />
-
-                  <InfoItem
-                    label="Supplementary Reason"
-                    value={
-                      currentCase.supplementary_reason
-                    }
-                  />
-
-                </div>
-
-              </Section>
+              
 
 
               {/* =================================================
