@@ -1,22 +1,16 @@
 "use client";
 
 import ComplaintWizard from "@/components/complaint/ComplaintWizard";
-import SHOSidebar from "@/components/layout/sho/Sidebar";
-import DashboardLayout from "../../dashboard/layout";
+import SHOLayout from "../../dashboard/sho/layout";
 
 export default function RegisterComplaintPage() {
   return (
-    <DashboardLayout>
-      {/* 1. bg-ivory background matching the dashboard */}
-      <div className="flex bg-ivory min-h-[calc(100vh-73px)]">
-        
-        <SHOSidebar />
-
-        {/* 2. Changed to max-w-7xl to perfectly align the card width with the other dashboard pages! */}
-        <main className="flex-1 p-8 max-w-7xl mx-auto overflow-y-auto">
+    <SHOLayout>
+      <div className="min-h-screen bg-ivory">
+        <main className="mx-auto w-full max-w-7xl p-8">
           <ComplaintWizard />
         </main>
       </div>
-    </DashboardLayout>
+    </SHOLayout>
   );
 }
