@@ -27,7 +27,7 @@ export default function ComplaintDetails({ form, setForm }: Props) {
         setCategoryError("");
 
         const API_BASE =
-          process.env.BACKEND_API_URL ||
+          process.env.NEXT_PUBLIC_BACKEND_API_URL ||
           "http://localhost:8000";
 
         const response = await fetch(

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const BACKEND_ROOT = (process.env.BACKEND_API_URL ?? "http://localhost:8000/api").replace(/\/api\/?$/, "");
+const BACKEND_ROOT = (process.env.NEXT_PUBLIC_BACKEND_API_URL ?? "http://localhost:8000/api").replace(/\/api\/?$/, "");
 
 export async function POST(
   request: NextRequest,

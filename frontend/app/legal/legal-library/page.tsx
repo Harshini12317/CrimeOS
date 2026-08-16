@@ -2,13 +2,13 @@ import LegalLibraryClient, { type LibrarySearchResponse } from "@/components/leg
 
 export const dynamic = "force-dynamic";
 
-// Requires BACKEND_API_URL (or a server-only API_URL — same-origin per
+// Requires NEXT_PUBLIC_BACKEND_API_URL (or a server-only API_URL — same-origin per
 // your answer) pointing at the FastAPI backend, e.g.
-//   BACKEND_API_URL=http://localhost:8000   (dev)
+//   NEXT_PUBLIC_BACKEND_API_URL=http://localhost:8000   (dev)
 // Backend route: backend/investigation/legal_library_router.py — mount it
 // with app.include_router(router, prefix="/api/legal-library") in your
 // FastAPI app first, or this fetch will 404.
-const API_BASE = process.env.BACKEND_API_URL ?? "";
+const API_BASE = process.env.NEXT_PUBLIC_BACKEND_API_URL ?? "";
 
 async function searchLibrary(params: {
   q?: string;

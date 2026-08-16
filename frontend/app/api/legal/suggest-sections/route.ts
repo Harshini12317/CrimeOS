@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const BACKEND_API_URL = process.env.BACKEND_API_URL ?? "http://localhost:8000/api";
+const NEXT_PUBLIC_BACKEND_API_URL = process.env.NEXT_PUBLIC_BACKEND_API_URL ?? "http://localhost:8000/api";
 
 export async function POST(request: NextRequest) {
   const token = request.cookies.get("crimeos_token")?.value;
@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
 
   let backendRes: Response;
   try {
-    backendRes = await fetch(`${BACKEND_API_URL}/legal/suggest-sections`, {
+    backendRes = await fetch(`${NEXT_PUBLIC_BACKEND_API_URL}/legal/suggest-sections`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     });
   } catch {
     return NextResponse.json(
-      { error: `Could not reach backend at ${BACKEND_API_URL}. Is it running?` },
+      { error: `Could not reach backend at ${NEXT_PUBLIC_BACKEND_API_URL}. Is it running?` },
       { status: 502 }
     );
   }
