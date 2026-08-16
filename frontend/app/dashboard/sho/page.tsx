@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 
 import ComplaintList from "@/components/complaint/ComplaintList";
+import ComplaintStats from "@/components/complaint/ComplaintStats";
 
 export default function SHODashboard() {
   return (
@@ -18,8 +19,15 @@ export default function SHODashboard() {
       <div className="mx-auto w-full max-w-7xl space-y-7 p-6 md:p-8">
 
         {/* =====================================================
+            STATION OVERVIEW
+        ===================================================== */}
+
+        <ComplaintStats />
+
+        {/* =====================================================
             HEADER
         ===================================================== */}
+
         <section className="rounded-xl border border-gold-200 bg-white p-6 shadow-sm">
           <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
 
@@ -35,8 +43,8 @@ export default function SHODashboard() {
               </h1>
 
               <p className="mt-1 text-sm text-ink-600">
-                Register complaints and review station complaints and case
-                summaries.
+                Register complaints and review station complaints
+                and case summaries.
               </p>
             </div>
 
@@ -51,10 +59,10 @@ export default function SHODashboard() {
           </div>
         </section>
 
-
         {/* =====================================================
             QUICK ACTIONS
         ===================================================== */}
+
         <section className="grid grid-cols-1 gap-4 md:grid-cols-3">
 
           <QuickAction
@@ -68,7 +76,7 @@ export default function SHODashboard() {
             href="/complaints"
             icon={<ClipboardList className="h-5 w-5" />}
             title="Complaint List"
-            description="View complaints registered at the station."
+            description="View all complaints registered at the station."
           />
 
           <QuickAction
@@ -80,10 +88,10 @@ export default function SHODashboard() {
 
         </section>
 
-
         {/* =====================================================
             RECENT COMPLAINTS
         ===================================================== */}
+
         <section className="rounded-xl border border-gold-200 bg-white shadow-sm">
 
           <div className="flex flex-col gap-3 border-b border-gold-100 p-5 sm:flex-row sm:items-center sm:justify-between">
@@ -98,7 +106,7 @@ export default function SHODashboard() {
               </div>
 
               <p className="mt-1 text-xs text-ink-600">
-                Complaints registered at this station.
+                Showing the 5 most recently registered complaints.
               </p>
             </div>
 
@@ -113,15 +121,15 @@ export default function SHODashboard() {
           </div>
 
           <div className="p-4 md:p-5">
-            <ComplaintList limit={5}/>
+            <ComplaintList limit={5} />
           </div>
 
         </section>
 
-
         {/* =====================================================
             CASE SUMMARIES
         ===================================================== */}
+
         <section className="rounded-xl border border-gold-200 bg-white shadow-sm">
 
           <div className="flex flex-col gap-3 border-b border-gold-100 p-5 sm:flex-row sm:items-center sm:justify-between">
@@ -156,6 +164,7 @@ export default function SHODashboard() {
               href="/case-summary"
               className="group flex items-center justify-between rounded-lg border border-gold-100 bg-ivory/30 p-4 transition hover:border-gold-300 hover:bg-gold-50/30"
             >
+
               <div className="flex items-center gap-3">
 
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gold-50 text-maroon-700">
@@ -168,24 +177,25 @@ export default function SHODashboard() {
                   </h3>
 
                   <p className="mt-1 text-xs text-ink-600">
-                    View AI-generated summaries and investigation details for
-                    available cases.
+                    View AI-generated summaries and investigation
+                    details for available cases.
                   </p>
                 </div>
 
               </div>
 
               <ChevronRight className="h-5 w-5 text-ink-400 group-hover:text-maroon-700" />
+
             </Link>
 
           </div>
 
         </section>
 
-
         {/* =====================================================
             FOOTER
         ===================================================== */}
+
         <div className="border-t border-gold-200 pt-4 text-center">
           <p className="text-[10px] uppercase tracking-wider text-ink-500">
             Confidential Police Investigation System
@@ -196,7 +206,6 @@ export default function SHODashboard() {
     </main>
   );
 }
-
 
 /* ================================================================
    QUICK ACTION
@@ -218,6 +227,7 @@ function QuickAction({
       href={href}
       className="group rounded-xl border border-gold-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-gold-400 hover:shadow-md"
     >
+
       <div className="flex items-start justify-between">
 
         <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-maroon-50 text-maroon-700">
@@ -235,6 +245,7 @@ function QuickAction({
       <p className="mt-1 text-xs leading-relaxed text-ink-600">
         {description}
       </p>
+
     </Link>
   );
 }

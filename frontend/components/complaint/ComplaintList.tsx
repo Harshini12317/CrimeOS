@@ -19,63 +19,104 @@ interface ComplaintSummary {
   incident_time?: string;
 }
 
+interface ComplaintListProps {
+  initialComplaints?: ComplaintSummary[];
+  limit?: number;
+}
+
 export default function ComplaintList({
   initialComplaints,
   limit,
-}: {
-  initialComplaints?: ComplaintSummary[];
-  limit?: number;
-}) {
+}: ComplaintListProps) {
   const [complaints, setComplaints] = useState<ComplaintSummary[]>(
     initialComplaints || []
   );
 
-  const [loading, setLoading] = useState(!initialComplaints);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (initialComplaints) {
-      setLoading(false);
-      return;
-    }
+  const [caseComplaintIds, setCaseComplaintIds] = useState<Set<string>>(
+    new Set()
+  );
 
-    async function loadComplaints() {
+  useEffect(() => {
+    async function loadData() {
       try {
         const API_BASE =
-          process.env.NEXT_PUBLIC_API_BASE_URL ||
+          process.env.NEXT_PUBLIC_API_BASE_URL ??
           "http://localhost:8000";
 
-        const response = await axios.get(
-          `${API_BASE}/api/complaints`
-        );
+        // --------------------------------------------------
+        // Fetch complaints
+        // --------------------------------------------------
 
-        console.log("Complaints API response:", response.data);
+        if (!initialComplaints) {
+          const response = await axios.get(
+            `${API_BASE}/api/complaints`
+          );
 
-        setComplaints(
-          Array.isArray(response.data)
-            ? response.data
-            : []
-        );
+          const fetchedComplaints =
+            response.data?.complaints ||
+            response.data ||
+            [];
+
+          setComplaints(fetchedComplaints);
+        }
+
+        // --------------------------------------------------
+        // Fetch cases
+        // Used to determine whether complaint is assigned
+        // --------------------------------------------------
+
+        try {
+          const casesResponse = await axios.get(
+            `${API_BASE}/api/cases`
+          );
+
+          const cases =
+            casesResponse.data?.cases ||
+            casesResponse.data ||
+            [];
+
+          const ids = new Set<string>();
+
+          for (const c of cases) {
+            if (c.complaint_id) {
+              ids.add(String(c.complaint_id));
+            }
+          }
+
+          setCaseComplaintIds(ids);
+        } catch (caseError) {
+          console.warn(
+            "Could not load cases to detect assigned complaints:",
+            caseError
+          );
+        }
       } catch (err: any) {
         console.error("Failed to load complaints:", err);
 
-        const msg =
+        const message =
           err?.response?.data?.detail ||
           err?.message ||
-          "Failed to load complaints.";
+          "Unknown error";
 
-        setError(msg);
+        setError(`Unable to load complaints: ${message}`);
       } finally {
         setLoading(false);
       }
     }
 
-    loadComplaints();
+    loadData();
   }, [initialComplaints]);
+
+  // --------------------------------------------------
+  // Loading
+  // --------------------------------------------------
 
   if (loading) {
     return (
-      <div className="rounded-lg border border-gold-200 bg-white p-6">
+      <div className="rounded-xl border border-gold-200 bg-white p-6 shadow-sm">
         <p className="text-sm text-ink-600">
           Loading complaints...
         </p>
@@ -83,121 +124,206 @@ export default function ComplaintList({
     );
   }
 
+  // --------------------------------------------------
+  // Error
+  // --------------------------------------------------
+
   if (error) {
     return (
-      <div className="rounded-lg border border-rose-200 bg-rose-50 p-6">
-        <h3 className="font-semibold text-rose-800">
-          Unable to load complaints
-        </h3>
-
-        <p className="mt-1 text-sm text-rose-700">
-          {error}
-        </p>
+      <div className="rounded-xl border border-rose-200 bg-rose-50 p-6 text-rose-700 shadow-sm">
+        <p className="text-sm font-medium">{error}</p>
       </div>
     );
   }
 
-  if (complaints.length === 0) {
+  // --------------------------------------------------
+  // Sort newest first
+  // --------------------------------------------------
+
+  const sortedComplaints = [...complaints].sort((a, b) => {
+    if (!a.created_at) return 1;
+    if (!b.created_at) return -1;
+
     return (
-      <div className="rounded-lg border border-gold-200 bg-white p-6 text-center">
-        <h2 className="font-semibold text-ink-900">
-          No complaints registered yet
-        </h2>
+      new Date(b.created_at).getTime() -
+      new Date(a.created_at).getTime()
+    );
+  });
 
-        <p className="mt-2 text-sm text-ink-600">
-          Complaints registered at this station will appear here.
-        </p>
+  // --------------------------------------------------
+  // Apply limit
+  //
+  // Dashboard -> limit={5}
+  // Complaint page -> no limit, shows everything
+  // --------------------------------------------------
+
+  const displayedComplaints = limit
+    ? sortedComplaints.slice(0, limit)
+    : sortedComplaints;
+
+  // --------------------------------------------------
+  // No complaints
+  // --------------------------------------------------
+
+  if (!displayedComplaints.length) {
+    return (
+      <div className="rounded-xl border border-gold-200 bg-white p-6 shadow-sm">
+        <div className="text-center">
+          <h2 className="text-lg font-semibold text-ink-900">
+            No complaints registered yet
+          </h2>
+
+          <p className="mt-2 text-sm text-ink-600">
+            Complaints registered at this station will appear here.
+          </p>
+        </div>
       </div>
     );
   }
 
-  // Only display the requested number of complaints.
-  const visibleComplaints = limit
-    ? complaints.slice(0, limit)
-    : complaints;
+  // --------------------------------------------------
+  // Complaint cards
+  // --------------------------------------------------
 
   return (
     <div className="space-y-3">
-      {visibleComplaints.map((complaint) => {
+      {displayedComplaints.map((complaint) => {
         const status = complaint.status || "Pending";
 
+        const normalizedStatus = status.toLowerCase();
+
         const statusClasses =
-          status.toLowerCase() === "closed"
+          normalizedStatus === "closed"
             ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-            : status.toLowerCase() === "rejected"
+            : normalizedStatus === "rejected"
             ? "bg-rose-50 text-rose-700 border-rose-200"
-            : status.toLowerCase() === "assigned"
+            : normalizedStatus === "assigned"
             ? "bg-blue-50 text-blue-700 border-blue-200"
             : "bg-gold-50 text-gold-700 border-gold-200";
+
+        const hasCase = caseComplaintIds.has(
+          String(complaint.complaint_id)
+        );
 
         return (
           <div
             key={complaint.complaint_id}
-            className="rounded-lg border border-gold-200 bg-white p-4 transition hover:shadow-sm"
+            className={`rounded-xl border bg-white p-4 transition hover:shadow-md ${
+              hasCase
+                ? "border-emerald-200"
+                : "border-gold-200"
+            }`}
           >
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              {/* Left */}
               <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-3">
-                  <h3 className="font-mono text-sm font-bold text-maroon-700">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Link
+                    href={`/complaints/${complaint.complaint_id}`}
+                    className="font-mono text-sm font-bold text-maroon-700 hover:text-maroon-900 hover:underline"
+                  >
                     {complaint.complaint_number ||
                       complaint.complaint_id}
-                  </h3>
+                  </Link>
 
                   <span
-                    className={`rounded-full border px-2.5 py-1 text-[10px] font-bold ${statusClasses}`}
+                    className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase ${statusClasses}`}
                   >
                     {status}
                   </span>
+
+                  {hasCase && (
+                    <span className="inline-flex rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
+                      Assigned to IO
+                    </span>
+                  )}
+
+                  {!hasCase && (
+                    <span className="inline-flex rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-700">
+                      Unassigned
+                    </span>
+                  )}
                 </div>
 
-                <p className="mt-1 text-sm font-medium text-ink-900">
-                  {complaint.crime_category ||
-                    "Crime category not specified"}
-                </p>
-
-                {complaint.crime_subcategory && (
-                  <p className="text-xs text-ink-600">
-                    {complaint.crime_subcategory}
+                <div className="mt-2">
+                  <p className="text-sm font-semibold text-ink-900">
+                    {complaint.crime_category ||
+                      "Crime category not specified"}
                   </p>
-                )}
+
+                  {complaint.crime_subcategory && (
+                    <p className="text-xs text-ink-600">
+                      {complaint.crime_subcategory}
+                    </p>
+                  )}
+                </div>
 
                 <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-600">
                   <span>
-                    📍 {complaint.location || "Location not provided"}
+                    Location:{" "}
+                    <span className="font-medium text-ink-900">
+                      {complaint.location || "Not provided"}
+                    </span>
                   </span>
 
                   {complaint.priority && (
                     <span>
                       Priority:{" "}
-                      <strong>{complaint.priority}</strong>
-                    </span>
-                  )}
-
-                  {complaint.created_at && (
-                    <span>
-                      Registered:{" "}
-                      {new Date(
-                        complaint.created_at
-                      ).toLocaleDateString()}
+                      <span className="font-medium text-ink-900">
+                        {complaint.priority}
+                      </span>
                     </span>
                   )}
                 </div>
               </div>
 
-              <div className="shrink-0">
+              {/* Right */}
+              <div className="flex shrink-0 items-center justify-between gap-4 md:flex-col md:items-end">
+                <div className="text-right">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-ink-500">
+                    Registered
+                  </p>
+
+                  <p className="mt-1 text-xs font-medium text-ink-700">
+                    {complaint.created_at
+                      ? new Date(
+                          complaint.created_at
+                        ).toLocaleString()
+                      : "Date unavailable"}
+                  </p>
+                </div>
+
                 <Link
                   href={`/complaints/${complaint.complaint_id}`}
-                  className="inline-flex items-center rounded-md bg-gold-600 px-3 py-2 text-xs font-semibold text-white hover:bg-gold-700"
+                  className="inline-flex items-center rounded-md bg-maroon-800 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-maroon-700"
                 >
                   View Details
                 </Link>
               </div>
-
             </div>
+
+            {complaint.description && (
+              <div className="mt-3 border-t border-gold-100 pt-3">
+                <p className="line-clamp-2 text-xs leading-relaxed text-ink-600">
+                  {complaint.description}
+                </p>
+              </div>
+            )}
           </div>
         );
       })}
+
+      {/* Show message when dashboard is limited */}
+      {limit && sortedComplaints.length > limit && (
+        <div className="pt-2 text-center">
+          <Link
+            href="/complaints"
+            className="text-xs font-semibold text-maroon-700 hover:text-maroon-900 hover:underline"
+          >
+            View all {sortedComplaints.length} complaints →
+          </Link>
+        </div>
+      )}
     </div>
   );
 }
