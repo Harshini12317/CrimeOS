@@ -9,7 +9,7 @@ import Sidebar from "@/components/layout/io/Sidebar";
 import DashboardLayout from "@/app/dashboard/layout"; // adjust path if your alias differs from "../dashboard/layout"
 export const dynamic = "force-dynamic";
 
-const BACKEND_API_URL = process.env.BACKEND_API_URL ?? "http://localhost:8000/api";
+const NEXT_PUBLIC_BACKEND_API_URL = process.env.NEXT_PUBLIC_BACKEND_API_URL ?? "http://localhost:8000/api";
 
 // Mirrors app/api/auth/me/route.ts, but called directly from the server
 // component instead of round-tripping through that API route.
@@ -19,12 +19,12 @@ async function getCurrentUser(): Promise<User> {
 
   let res: Response;
   try {
-    res = await fetch(`${BACKEND_API_URL}/auth/me`, {
+    res = await fetch(`${NEXT_PUBLIC_BACKEND_API_URL}/auth/me`, {
       headers: { Authorization: `Bearer ${token}` },
       cache: "no-store",
     });
   } catch {
-    throw new Error(`Could not reach backend at ${BACKEND_API_URL}. Is it running?`);
+    throw new Error(`Could not reach backend at ${NEXT_PUBLIC_BACKEND_API_URL}. Is it running?`);
   }
 
   if (!res.ok) redirect("/login");

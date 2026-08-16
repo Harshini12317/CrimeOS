@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 // uvicorn's default port is 8000 — match whatever port FastAPI runs on.
-const BACKEND_API_URL = process.env.BACKEND_API_URL ?? "http://localhost:8000/api";
+const NEXT_PUBLIC_BACKEND_API_URL = process.env.NEXT_PUBLIC_BACKEND_API_URL ?? "http://localhost:8000/api";
 
 export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => null);
@@ -11,14 +11,14 @@ export async function POST(request: NextRequest) {
 
   let backendRes: Response;
   try {
-    backendRes = await fetch(`${BACKEND_API_URL}/auth/login`, {
+    backendRes = await fetch(`${NEXT_PUBLIC_BACKEND_API_URL}/auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
   } catch {
     return NextResponse.json(
-      { error: `Could not reach backend at ${BACKEND_API_URL}. Is it running?` },
+      { error: `Could not reach backend at ${NEXT_PUBLIC_BACKEND_API_URL}. Is it running?` },
       { status: 502 }
     );
   }

@@ -43,7 +43,7 @@ export default function ComplaintList({
     async function loadData() {
       try {
         const API_BASE =
-          process.env.BACKEND_API_URL ??
+          process.env.NEXT_PUBLIC_BACKEND_API_URL ??
           "http://localhost:8000";
 
         // --------------------------------------------------

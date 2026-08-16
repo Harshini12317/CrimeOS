@@ -105,7 +105,7 @@ export default function ComplaintDetailsPage({
         const { complaintId } = await params;
 
         const apiUrl =
-          process.env.BACKEND_API_URL ||
+          process.env.NEXT_PUBLIC_BACKEND_API_URL ||
           "http://localhost:8000";
 
         const response = await fetch(
