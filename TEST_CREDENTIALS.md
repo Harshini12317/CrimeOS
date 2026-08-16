@@ -14,10 +14,10 @@ Use the following credentials to test the deployed Crime OS application.
 ## 🌐 Application
 
 **Frontend:**
-`https://your-frontend-url.com`
+https://crimeos-frontend.onrender.com
 
 **Backend API:**
-`https://your-backend-url.com`
+https://crimeos.onrender.com/
 
 ## 👤 Available Roles
 
