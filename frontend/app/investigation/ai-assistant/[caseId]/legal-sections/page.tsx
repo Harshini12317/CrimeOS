@@ -51,8 +51,8 @@ interface AnalysisResult {
 const SECTION_TEXT_PREVIEW_LENGTH = 260;
 
 // Adjust to wherever your FastAPI backend is served
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
-// NOTE: set NEXT_PUBLIC_API_BASE_URL to the bare host (e.g. http://localhost:8000),
+const API_BASE = process.env.BACKEND_API_URL ?? "http://localhost:8000";
+// NOTE: set BACKEND_API_URL to the bare host (e.g. http://localhost:8000),
 // without a trailing /api — the /api prefix is already part of the fetch paths below,
 // matching the router's prefix="/api/complaints" in legal_section_intelligence.py.
 

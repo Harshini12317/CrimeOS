@@ -27,7 +27,7 @@ export default function AiAssistantClient() {
     async function loadCases() {
       try {
         const API_BASE =
-          process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
+          process.env.BACKEND_API_URL ?? "http://localhost:8000";
         const token = localStorage.getItem("token");
 
         const response = await axios.get(`${API_BASE}/api/cases/my-cases`, {

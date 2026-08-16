@@ -27,7 +27,7 @@ Browser
   ▼
 Next.js Server Component  (app/legal/legal-library/page.tsx)
   │  reads ?q= and ?act= from the URL
-  │  GET {NEXT_PUBLIC_API_URL}/api/legal-library/search?q=...&act_code=...
+  │  GET {BACKEND_API_URL}/api/legal-library/search?q=...&act_code=...
   ▼
 FastAPI  (backend/investigation/legal_library_router.py)
   │
