@@ -12,7 +12,7 @@
  * that's the only place that needs to change.
  */
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "";
+const API_BASE = process.env.BACKEND_API_URL || "";
 
 function authHeaders(): Record<string, string> {
   // e.g. return { Authorization: `Bearer ${getToken()}` };
