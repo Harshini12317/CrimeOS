@@ -16,7 +16,7 @@
 
 | Role           | Team Member              |
 | -------------- | ------------------------ |
-| 🏆 Team Leader | **Harshini J**           |
+| Team Leader    | **Harshini J**           |
 | Team Member    | **Manushri Swaminathan** |
 | Team Member    | **Srinith Nangunoori**   |
 | Team Member    | **Vyomini Joshi**        |
