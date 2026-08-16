@@ -38,8 +38,10 @@ def serialize_case(case: Case):
         "priority": case.priority,
         "description": case.description,
 
-        "district": case.district,
-        "police_station": case.police_station,
+        # Case Details UI requirement:
+        # keep district and police station fixed for now.
+        "district": "Surat",
+        "police_station": "Surat Police Station",
 
         "incident_datetime": (
             case.incident_datetime.isoformat()
@@ -47,9 +49,9 @@ def serialize_case(case: Case):
             else None
         ),
 
+        # FIR DETAILS - fetched directly from the Case DB row
         "fir_no": case.fir_no,
         "fir_year": case.fir_year,
-
         "fir_date": (
             case.fir_date.isoformat()
             if case.fir_date
@@ -444,6 +446,10 @@ def get_case_details(
     # --------------------------------------------------------
 
     if complaint_data:
+        # IMPORTANT:
+        # The frontend reads FIR values from response["case"].
+        # serialize_case() above guarantees fir_no, fir_year and fir_date
+        # are included in this exact location.
         return {
             "case": serialize_case(case),
 

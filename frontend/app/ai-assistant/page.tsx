@@ -5,9 +5,10 @@ import AiAssistantClient from "@/components/legal/Aiassistantclient";
 export default function AiAssistantPage() {
   return (
     <DashboardLayout>
-      <div className="flex">
+      <div className="flex min-h-[calc(100vh-73px)] bg-ivory">
         <Sidebar />
-        <main className="flex-1 p-6">
+
+        <main className="flex-1 min-w-0 p-6">
           <AiAssistantClient />
         </main>
       </div>
