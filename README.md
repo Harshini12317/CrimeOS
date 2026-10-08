@@ -2088,19 +2088,6 @@ CrimeOS integrates multiple third-party technologies and services, including:
 
 ---
 
-# 👥 Team VectorMinds
-
-### Team Leader
-
-**Harshini J**
-
-### Team Members
-
-**Manushri Swaminathan**
-**Srinith Nangunoori**
-**Vyomini Joshi**
-
----
 
 # ⚖️ CrimeOS
 
