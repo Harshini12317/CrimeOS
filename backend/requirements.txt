@@ -26,6 +26,7 @@ python-docx
 cloudinary
 reportlab
 aiosmtplib
+psycopg[binary]
 python-jose[cryptography]
 passlib
 bcrypt
